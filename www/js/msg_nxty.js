@@ -113,9 +113,23 @@ var nxtyRxStatusHw          = null;
 var nxtyRxStatusIcd         = null;
 var nxtyRxRegLockStatus     = 0;
 var nxtyRxStatusBoardConfig = null;
-const V1_ICD                = 0x07;
-const IM_A_CU_MASK          = 0x01;
-const IM_A_1BOX_NU_MASK     = 0x8000;
+
+
+const V1_ICD                = 0x07;             // Old:  Consider removing logic for version 1 devices.
+const V2_ICD                = 0x20;             // 0xAE protocol with super packets.
+const V3_ICD                = 0x30;             // 0xAE protocol with super packets with some QMT (QMT no longer supported.).
+const V4_ICD                = 0x40;             // Place holder for thunk layer protocol.
+const IM_A_CU_MASK          = 0x0001;
+const IM_A_1BOX_NU_MASK     = 0x8000;           // Means UNII RF off.  Products: GO, PRIME, CABLE and Haywards(2Box) will have UNII RF off.
+const BOARD_CFG_CABLE_BOX_BIT = 0x4000;         // Bit 14 means cable box
+// Board CFG:   NU      CU
+// PRO:         0x0008  0x0007
+// DUO:         0x0040  0x0041
+// GO G31:      0x8006 
+// Coors G32:   0x8014
+// Haywards:    0x8052  0x8051
+const BOARD_CFG_8052        = 0x8052;          // Special processing for Haywards NU.  Change 0x8052 to 0x0052 to make 2Box.
+
 
 
 // Sys Info data......

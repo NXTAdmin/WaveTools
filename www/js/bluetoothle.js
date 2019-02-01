@@ -214,6 +214,7 @@ var u8IcdRxCountTotal   = 0;
 var guiDisableBtScanFlag    = false;
 var bPrivacyViewed          = true;
 var enableLocationPerDialog = false;  // will be TRUE if the device is iOS or Android >= 6.0 version
+var guiDeviceFlag           = false;            // Flag:  true:  display device selection 
 
 
 // OpenSouthBoundIf...................................................................................
@@ -2721,7 +2722,7 @@ function GetDeviceSerialNumbersLoop()
                 if( (guiDeviceTypeList[firstFoundIdx] == "Antenna")  && (guiDeviceSubCnxList[firstFoundIdx] != "Cnx") )
                 {
                     PrintLog(1, "Skal:  Single device found which is a Skal but it is not connected to a GO so show user and allow to connect." );
-                    guiDeviceFlag = true;   // Show popup with single Antenna device.
+ //                   guiDeviceFlag = true;   // Show popup with single Antenna device.
                 }
                 else
                 {
@@ -2747,7 +2748,7 @@ function GetDeviceSerialNumbersLoop()
         }
         else if( guiNumDevicesFound > 1 )
         {
-            guiDeviceFlag = true;
+//            guiDeviceFlag = true;
             deviceFoundUIFlag = true;   // Keep the popup, "Can't find a booster" from showing up after 2 minutes
         }
         
