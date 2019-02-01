@@ -103,47 +103,61 @@
 //
 
 
-const   BOARD_CFG_CABLE_BOX_BIT       = 0x4000;   // Bit 14 means cable box
+//const   BOARD_CFG_CABLE_BOX_BIT       = 0x4000;   // Bit 14 means cable box
 const   BOARD_CFG_USE_THIS_DEVICE     = 0x0000;   // Set to 0 for non-cable box, or 0x4000 for cable box.  
 
-var guiDeviceFlag           = false;            // Flag:  true:  display device selection 
-var guiDeviceAddrList       = [];               // An array of device addresses to select. (Android: MAC, IOS: Mangled MAC)
-var guiDeviceRssiList       = [];               // An array of associated BT RSSI values...
-var guiDeviceList           = [];               // An array of device IDs, i.e. Serial Numbers, to display for user to select.
                         
 // Use the following global variables to determine South Bound IF status.
 var isSouthBoundIfStarted   = false;    // Check if isSouthBoundIfEnabled after isShouthBoundIfStarted is true...
 var isSouthBoundIfEnabled   = false;
 var isSouthBoundIfCnx       = false;
 var bSouthBoundWriteError   = false;
+var bSouthBoundSkalCnx      = false;    // True if BT connected to Skal
 var isSouthBoundIfListDone  = false;
-var szSouthBoundIfEnableMsg = "Bluetooth Required: Please Enable...";
-var szSouthBoundIfNotCnxMsg = "Bluetooth connection lost.";
-var szSouthBoundIfInfoMsg   = "Indicates if connected to Cel-Fi device via Bluetooth.\nBlue means connected.\nGray means not connected.\nCurrent status: ";
+var SouthBoundCnxErrorCount = 0;
+var bBtIcdVer2              = false;    // True if BT ICD version is 2 which means no PIC-ICD messages and tech data is ID-VAL.
+var bUseIdValTechData       = false;    // True if running on BtIcdVer2.
+var bUseThunkLayer          = false;    // Convert ICD msgs to debug messages
+var szSouthBoundIfEnableMsg = GetLangString("SouthBoundIfEnableMsgBT");     // "Bluetooth Required: Please Enable...";
+var szSouthBoundIfNotCnxMsg = GetLangString("SouthBoundIfNotCnxMsgBT");     //  "Bluetooth connection lost.";
+var szSouthBoundIfInfoMsg   = GetLangString("SouthBoundIfInfoMsgBT");       // "Indicates if connected to Cel-Fi device via Bluetooth.\nBlue means connected.\nGray means not connected.\nCurrent status: ";
 
 
 var addressKey      = "address";
 var btAddr          = null;   // Version 2.0.0 requires address for many functions.
 var myLastBtAddress = null;
-var bBtClosed       = true;
-
+var bMonitorBt      = false;
+var uNoBtCount      = 0;
 
 // const   TX_MAX_BYTES_PER_CONN           = 20;
 const   TX_MAX_BYTES_PER_BUFFER         = 20;       // Android has 4 Tx buffers, IOS has 6 Tx buffers.
 const   BT_CONNECTION_INTERVAL_DEFAULT  = 40;       // Android should agree to 20 mS and IOS should agree to 30 mS
 var     btCnxInterval                   = BT_CONNECTION_INTERVAL_DEFAULT;
 var     maxPhoneBuffer                  = 7;        // Download message is 132 bytes which takes 7 20-byte buffers or 6 22-byte buffers.
+var     bBtTryingToCnx                  = false;    // Used for BT status while trying to connect. true:  ConnectBluetoothDevice() to CloseBluetoothDevice() 
+                                                    // isSouthBoundIfCnx is used for connected and subscribed.
+var     bBtCnxWhenBackground            = false;    // Set to true if BT is connected when phone sent to background.
 
 //var bridgeServiceUuid           = "6734";
 
 // 128-bit UUID must include the dashes.
+var myAdvertisingUuid         = "48d60a60-f000-11e3-b42d-0002a5d5c51b";
+
 // Power cycle phone when changing from 16-bit to 128-bit UUID to remove any local phone storage.
-var bridgeServiceUuid           = "48d60a60-f000-11e3-b42d-0002a5d5c51b";
+var myTiServiceUuid           = "48d60a60-f000-11e3-b42d-0002a5d5c51b";
+var myTiTxCharacteristicUuid  = "6711";       // Tx from the bluetooth device profile, Rx for the phone app.
+var myTiRxCharacteristicUuid  = "6722";       // Rx from our bluetooth device profile, Tx for the phone app.
+
+// Microchip's transparent protocol IDs.
+var myMcServiceUuid           = "49535343-fe7d-4ae5-8fa9-9fafd205e455";
+var myMcTxCharacteristicUuid  = "49535343-1e4d-4bd9-ba61-23c647249616";       // Tx from the bluetooth device profile, Rx for the phone app.
+var myMcRxCharacteristicUuid  = "49535343-8841-43f4-a8d4-ecbe34729bb3";       // Rx from our bluetooth device profile, Tx for the phone app.
 
 
-var bridgeTxCharacteristicUuid  = "6711";       // Tx from the bluetooth device profile, Rx for the phone app.
-var bridgeRxCharacteristicUuid  = "6722";       // Rx from our bluetooth device profile, Tx for the phone app.
-
+// Argh, assume we be talking to a TI part...
+var bridgeServiceUuid           = myTiServiceUuid;              // "48d60a60-f000-11e3-b42d-0002a5d5c51b";
+var bridgeTxCharacteristicUuid  = myTiTxCharacteristicUuid;     // "6711";       // Tx from the bluetooth device profile, Rx for the phone app.
+var bridgeRxCharacteristicUuid  = myTiRxCharacteristicUuid;     // "6722";       // Rx from our bluetooth device profile, Tx for the phone app.
 
 
 var scanTimer          = null;
@@ -154,9 +168,12 @@ var bMaxRssiScanning   = false;
 var maxRssi            = -200;
 var maxRssiAddr        = null;
 var bRefreshActive     = false;
-
+var uBtAutoTryCount    = 0;
+var bBtTryFavoriteMac  = false;
+var bTryConnectCalled  = false;
 
 var BluetoothCnxTimer = null;
+var ShutDownBluetoothTimer = null;
 
 var SCAN_RESULTS_SIZE = 62;     // advertisement data can be up to 31 bytes and scan results data can be up to 31 bytes.
 var u8ScanResults     = new Uint8Array(SCAN_RESULTS_SIZE);
@@ -175,32 +192,63 @@ var getSnState          = 0;
 var firstFoundIdx       = 0;
 var icdDeviceList       = []; 
 var boardCfgList        = [];
+var icdBtList           = [];       // List of ICD versions from BT chip advertisement.   0xAB: A: 4-bits type, B: Version
+var skalBtMacAddrList   = [];       // List of Skal MAC addresses returned from Skal.  Added for IOS.
+var babblingMacsList    = [];       // Comma separated list of MAC addresses to ignore.
+const   BABBLING_MAC_ID = "BabblingMacList"; 
 
+const BT_ICD_TYPE_SKAL  = 0x10;     // Top 4-bits used for type.
+const BT_ICD_VER_2      = 0x02;     // Lower 4-bits used for version.
+                                    // Ver 0x01: Normal ICD communication
+                                    // Ver 0x02: Use debug protocol and the thunk layer.
 
+var u8ThunkTx           = null;
+var u8ThunkRx           = null;
+var bRxThunkPending     = false;    // _SendTxThunkIn() / ReadRxThunkOut() and _GetDataBlock() / GetDataBlockDone(). 
+var u8ThunkRxCount      = 0;        // Number of Rx:d bytes to generate an ICD Rx.
+var u8ThunkRxCountTotal = 0;
+var u8IcdRxCountTotal   = 0;
 
-//.................................................................................................................
-function stringifyReplaceToHex(key, value) 
-{
-    for( var i = 0; i < value.length; i++ )
-    {
-        if(typeof value[i] === 'undefined')
-        {
-            value[i] = "undefined";
-        }
-        else
-        {
-            value[i] = "0x" + value[i].toString(16);
-        }
-    }
-    return value;
-}
 
 // OpenSouthBoundIf...................................................................................
-function OpenSouthBoundIf()
+function OpenSouthBoundIf(bFirstTime)
 {
     PrintLog(1, "BT: Starting bluetooth");
 
+    // WAVEAPP-544: See if we have a cached MAC address for auto connect.
+    if( IsAnyDeviceRemembered() )
+    {
+        bBtTryFavoriteMac  = true;
+        guiFavoriteMacAddr = window.localStorage.getItem( "guiFavoriteMacAddr_ID" );
+        guiFavoriteIcd     = parseInt( window.localStorage.getItem( "guiFavoriteIcd_ID" ) );
+        guiFavoriteRssi    = parseInt( window.localStorage.getItem( "guiFavoriteRssi_ID" ) );
+    }
+    
+    if( bFirstTime )
+    {
+        // Initialize the Thunk layer, i.e. ICD to debug
+        var maxNumTxThunkBytes = 1024 * 1024; // NXTY_V2_MAX_MSG_SIZE;
+        var maxNumRxThunkBytes = NXTY_V2_MAX_MSG_SIZE;
+        u8ThunkTx = Module.AllocToThunkU8(maxNumTxThunkBytes);
+        u8ThunkRx = Module.AllocToThunkU8(maxNumRxThunkBytes);
+    }
 
+/*    
+    guiFavoriteMacAddr = window.localStorage.getItem( "guiFavoriteMacAddr_ID" );
+    if( (guiFavoriteMacAddr != null) )
+    {
+        guiFavoriteIcd     = window.localStorage.getItem( "guiFavoriteIcd_ID" );
+        guiFavoriteRssi    = window.localStorage.getItem( "guiFavoriteRssi_ID" );
+        
+        if( (guiFavoriteIcd != null) && (guiFavoriteRssi != null) )
+        {
+            bBtTryFavoriteMac = true;
+            guiFavoriteIcd    = parseInt( window.localStorage.getItem( "guiFavoriteIcd_ID" ) );
+            guiFavoriteRssi   = parseInt( window.localStorage.getItem( "guiFavoriteRssi_ID" ) );
+        }
+    }
+*/
+    
     var paramsObj = { "request": true,  "statusReceiver": true };
     bluetoothle.initialize(initializeSuccess, /*initializeError, */ paramsObj);  // error no longer used with plugin 3.3.0.
 }
@@ -220,31 +268,81 @@ function initializeSuccess(obj)
   {
       PrintLog(99, "BT: Unexpected initialize status: " + obj.status);
       
-      Spinnerstop()
-      showAlert( obj.status, "Bluetooth Error" );
+      if( obj.status == "disabled" )
+      {
+          CatchBluetoothDisabled();
+      }
   }
 
   isSouthBoundIfStarted = true;
 }
 
+// This function no longer necessary with plugin 3.3.0...
+/*
 function initializeError(obj)
 {
   PrintLog(99, "BT: Initialize error: " + obj.error + " - " + obj.message);
-  isSouthBoundIfEnabled = false;
-  isSouthBoundIfStarted = true;
-  showAlert( "This app requires Bluetooth to be enabled.", "Bluetooth Required" );
+  CatchBluetoothDisabled();
 }
- 
+*/
 
+//HandleBtDisabledConfirmation.......................................................................................
+function HandleBtDisabledConfirmation(buttonIndex) 
+{
+    PrintLog(1, "BT: User pressed Try Again which called the handler --> HandleBtDisabledConfirmation(" + buttonIndex + ")"  );
+    // buttonIndex = 0 if dialog dismissed, i.e. back button pressed.
+    // buttonIndex = 1 if 'Ok'
+    if( buttonIndex == 0 )
+    {
+        // If they dismiss, then give it to them again....
+        ShowConfirmPopUpMsg( 'KEY_BLUETOOTH_REQUIRED',               // title
+           "", // "This app requires Bluetooth to be enabled.<br>Please activate Bluetooth from your system settings.",    // message text written by handler
+           HandleBtDisabledConfirmation,      // callback to invoke with index of button pressed
+           ['Ok'] );
+    }
+    else if( (buttonIndex == 1) || (buttonIndex == 2) )
+    {
+        // Ok...
+        if( BluetoothCnxTimer != null )
+        {
+            clearTimeout(BluetoothCnxTimer);
+            BluetoothCnxTimer = null;   
+        }
+        OpenSouthBoundIf(false);     // Re open the interface
+    }
+}
 
+// CatchBluetoothDisabled...................................................................................
+// If some silly user disables bluetooth along the way then inform.
+// Note that OS will catch at the start but this will catch if user disables bluetooth while running.
+function CatchBluetoothDisabled()
+{
+    PrintLog(1, "BT: CatchBluetoothDisabled()" );
+    isSouthBoundIfEnabled = false;
+    isSouthBoundIfStarted = true;
+    ShowConfirmPopUpMsg( 'KEY_BLUETOOTH_REQUIRED',               // title
+            "This app requires Bluetooth to be enabled.<br>Please activate Bluetooth from your system settings.",    // message text written by handler, this text written to log.
+            HandleBtDisabledConfirmation,      // callback to invoke with index of button pressed
+            ['Ok'] );
+}
 
 // BluetoothLoop...................................................................................
-// Check every 5 seconds if not connected and subscribed and every 15 seconds if already connected...
+// Check every 10 seconds if not connected and subscribed and every 15 seconds if already connected...
 function BluetoothLoop()
 {
-    var paramsObj = {"address":btAddr};
-    bluetoothle.isConnected( isConnectedCallback, isConnectedCallback, paramsObj );
-
+    if( bPhoneInBackground )
+    {
+        // Phone in background, run without BT...
+        // Note that this loop is stopped if a BT device has already connected but
+        // if trying to connect then the disconnect logic does not stop this loop.
+        BluetoothCnxTimer = setTimeout(BluetoothLoop, 5000);
+    }
+    else
+    {
+        // Phone in foreground so act normally...
+        var paramsObj = {"address":btAddr};
+        bluetoothle.isConnected( isConnectedCallback, isConnectedCallback, paramsObj );
+    }
 }
 
 function isConnectedCallback(obj)
@@ -252,14 +350,16 @@ function isConnectedCallback(obj)
     if(obj.isConnected)
     {
         PrintLog(10, "BT: bluetooth cnx callback: Cnx" );
-        UpdateBluetoothIcon( true );
+        uNoBtCount = 0;
+// jdo: only set if subscribed        UpdateBluetoothIcon( true );
 
-        // Check again in 10 seconds since we are connected...
-        BluetoothCnxTimer = setTimeout(BluetoothLoop, 10000);
+        // Check again in 15 seconds since we are connected...
+        BluetoothCnxTimer = setTimeout(BluetoothLoop, 15000);
 
         if( isBluetoothSubscribed == false )
         {
           // Run Discover and if successful then subscribe to the Tx of our device
+          PrintLog(1, "BT: bluetooth cnx callback: Cnx but not subscribed yet so retry..." );
           DiscoverBluetoothDevice();
         }
     }
@@ -268,10 +368,68 @@ function isConnectedCallback(obj)
         PrintLog(10, "BT: bluetooth cnx callback: Not Cnx" );
         UpdateBluetoothIcon( false );
 
-        // Check again in 5 seconds...
-        BluetoothCnxTimer = setTimeout(BluetoothLoop, 5000);
+        // Check again in 10 seconds...
+		if( bPrivacyViewed == true )
+		{
+	        BluetoothCnxTimer = setTimeout(BluetoothLoop, 10000);
+	        
+	        if( guiDisableBtScanFlag == false )
+	        {
+	            PrintLog(1, "BT: Privacy Policy accepted, scan for bluetooth devices..." );
+                // StartBluetoothScan();
+                if(enableLocationPerDialog) {
 
-        StartBluetoothScan();
+                    //check if location is accessible or not
+                    cordova.plugins.diagnostic.isLocationAvailable(successCallback, errorCallback);
+
+                    function successCallback(success) 
+                    {
+                        //success=true, when the location setting is enabled and the user has given permission to access location.
+                        if(success) 
+                        {
+                            locationEnabled = true;
+                            PrintLog(1, "Location services available.");
+                            StartBluetoothScan();
+                        } 
+                        else 
+                        {
+                            PrintLog(1, "Location services not available, success callback but not success.");
+                            guiDisableBtScanFlag = true;    // Disable the start of BT scanning...
+                            util.preLocationMessage();
+                        }
+                    } 
+
+                    function errorCallback() 
+                    {
+                        PrintLog(1, "Location services not available, error callback.");
+                        guiDisableBtScanFlag = true;    // Disable the start of BT scanning...
+                        util.preLocationMessage();
+                    }
+                } else {
+                    StartBluetoothScan();
+                }                
+	            
+                // Waveapp-760: General BT catch.  Inform after 30 seconds of no BT.
+                if( (bMonitorBt == true) && (guiCurrentMode != PROG_MODE_DOWNLOAD) && (guiPopupDisplayed == false) )
+                {
+                    uNoBtCount++;
+    	            if( uNoBtCount > 3 )
+    	            {
+    	                ShowAlertPopUpMsg(GetLangString("BluetoothCnxLost"),  GetLangString("UnableToSyncError99") );
+    	                uNoBtCount = 0;
+    	            }
+                }
+
+	        }
+	        else
+	        {
+                PrintLog(1, "BT: Do not start scan if we have a popup, i.e. Cant find a booster popup." );
+	        }
+		}
+		else
+		{
+	        BluetoothCnxTimer = setTimeout(BluetoothLoop, 2000);   // Come back in 2 seconds if Privacy not viewed yet.
+		}
     }
 }
 
@@ -281,36 +439,66 @@ function isConnectedCallback(obj)
 function StartBluetoothScan()
 {
     checkPermission(); 
-    PrintLog(1, "BT: Starting scan for Cel-Fi devices.");
+    PrintLog(1, "BT: StartBluetoothScan()...");
     
-    if( (window.device.platform == androidPlatform) && (parseFloat(window.device.version) < 5.0) )
-    {    
-        var paramsObj = {
-//          "services":[bridgeServiceUuid],                         // Some Android 4.4.x versions had issues filtering...
-          allowDuplicates: true,
-          scanMode: bluetoothle.SCAN_MODE_LOW_LATENCY,
-          callbackType: bluetoothle.CALLBACK_TYPE_ALL_MATCHES,
-          matchNum: bluetoothle.MATCH_NUM_MAX_ADVERTISEMENT,
-          matchMode: bluetoothle.MATCH_MODE_AGGRESSIVE,
-        };
+    // WAVEAPP-544: See if we have a cached MAC address for auto connect.
+    if( bBtTryFavoriteMac )
+    {
+        PrintLog(1, "BT: Try Favorite MAC:" + guiFavoriteMacAddr);
+        guiDeviceMacAddrList = [];
+        guiDeviceRssiList    = [];
+        icdBtList            = [];
+
+        guiDeviceMacAddrList.push(guiFavoriteMacAddr);
+        guiDeviceRssiList.push(guiFavoriteRssi);
+        icdBtList.push(guiFavoriteIcd);
+        
+        guiDeviceSnList.push("None");
+        guiDeviceTypeList.push("None");
+        guiDeviceSubSnList.push("None");
+        guiDeviceSubCnxList.push("None");
+        icdDeviceList.push(0);
+        boardCfgList.push(0);
+        skalBtMacAddrList.push(0);
+        
+        
+        bBtTryFavoriteMac = false;      // Only try one time...
+//        deviceFoundUIFlag = true;       // Keep the popup, "Can't find a booster" from showing up after 2 minutes.
+        tryConnect();
     }
     else
     {
-        var paramsObj = {
-          "services":[bridgeServiceUuid],
-          allowDuplicates: true,
-          scanMode: bluetoothle.SCAN_MODE_LOW_LATENCY,
-          callbackType: bluetoothle.CALLBACK_TYPE_ALL_MATCHES,
-          matchNum: bluetoothle.MATCH_NUM_MAX_ADVERTISEMENT,
-          matchMode: bluetoothle.MATCH_MODE_AGGRESSIVE,
-        };
-    }
+        PrintLog(1, "BT: Starting scan for Cel-Fi devices.");
+        if( (window.device.platform == androidPlatform) && (parseFloat(window.device.version) < 5.0) )
+        {    
+            var paramsObj = {
+//          "services":[myAdvertisingUuid],                         // Some Android 4.4.x versions had issues filtering...
+              allowDuplicates: true,
+              scanMode: bluetoothle.SCAN_MODE_LOW_LATENCY,
+              callbackType: bluetoothle.CALLBACK_TYPE_ALL_MATCHES,
+              matchNum: bluetoothle.MATCH_NUM_MAX_ADVERTISEMENT,
+              matchMode: bluetoothle.MATCH_MODE_AGGRESSIVE,
+            };
+        }
+        else
+        {
+            var paramsObj = {
+              "services":[myAdvertisingUuid],
+              allowDuplicates: true,
+              scanMode: bluetoothle.SCAN_MODE_LOW_LATENCY,
+              callbackType: bluetoothle.CALLBACK_TYPE_ALL_MATCHES,
+              matchNum: bluetoothle.MATCH_NUM_MAX_ADVERTISEMENT,
+              matchMode: bluetoothle.MATCH_MODE_AGGRESSIVE,
+            };
+                
+        }
+        
     
-
-    bMaxRssiScanning = true;
-    connectTimer     = null;
+        bMaxRssiScanning = true;
+        connectTimer     = null;
 //    setTimeout(scanMaxRssiTimeout, 1000 );
-    bluetoothle.startScan(startScanSuccess, startScanError, paramsObj);
+        bluetoothle.startScan(startScanSuccess, startScanError, paramsObj);
+    }
 }
 
 function scanMaxRssiTimeout()
@@ -335,6 +523,7 @@ function checkPermission() {
       }
 
       //TODO Permission denied, show another message?
+      PrintLog(99, "BT: Permission denied.")
     });
   });
 }
@@ -343,6 +532,11 @@ function checkPermission() {
 function startScanSuccess(obj)
 {
   var i;
+  var uIcd = 0;
+  var tempSn = "None";
+  var tempDeviceIcd = 0;
+  var snOffset = 0;
+  
   if (obj.status == "scanResult")
   {
     var scanStr = JSON.stringify(obj);
@@ -381,7 +575,7 @@ function startScanSuccess(obj)
 
 
         // Neither Android nor IOS filters based on the 128-bit UUID so we have to determine if
-        // this device is ours.
+        // this device is ours.  (jdo:  This was true early on but now both IOS and Android filter based on 128 bit UUID.)
         // Android:  Compare 128-bit UUID.
         // IOS:      Compare name since 128-bit UUID not provided to app.
         if( window.device.platform == iOSPlatform )
@@ -390,15 +584,17 @@ function startScanSuccess(obj)
             // The returned bytes for IOS are...                                IOS returns only manufacturer specific data...
             //                                                                  [0]
             // "2 1 6 11 6 1b c5 d5 a5 02 00 2d b4 e3 11 00 F0 60 0A D6 48 07 ff 0 1 xx yy 25 29 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+            // "2 1 6 11 6 1b c5 d5 a5 02 00 2d b4 e3 11 00 F0 60 0A D6 48 09 ff 0 2 <6-byte SN>                                 Microchip with SN
             //  |    advertise data                                                            | |             scan results                    |
             //                                                                     ^ ^  ^  ^  ^
             //                                                                     | SW Ver|  Rx Handle
             //                                                                     |       Tx Handle
             //                                                                    ICD
 
-            if( obj.name == "Nextivity Bridge" )
+
+            if( (obj.name == "Nextivity Bridge") || (obj.name == "CelFi 2451")  || (obj.name == "CelFi 2640") || (obj.name == "CelFi 1871"))
             {
-                PrintLog(10, "BT: IOS: Cel-Fi device found based on name: Nextivity Bridge" );
+                PrintLog(10, "BT: IOS: Cel-Fi device found based on name: " + obj.name );
                 bDeviceFound = true;
             }
             else
@@ -414,7 +610,7 @@ function startScanSuccess(obj)
         else
         {
             // Non IOS: Android and Win.
-            var nxty128Uuid = new Uint8Array([0x02, 0x01, 0x06, 0x11, 0x06, 0x1b, 0xc5, 0xd5, 0xa5, 0x02, 0x00, 0x2d, 0xb4, 0xe3, 0x11, 0x00, 0xF0, 0x60, 0x0A, 0xD6, 0x48]);
+            var nxty128Uuid = new Uint8Array([0x1b, 0xc5, 0xd5, 0xa5, 0x02, 0x00, 0x2d, 0xb4, 0xe3, 0x11, 0x00, 0xF0, 0x60, 0x0A, 0xD6, 0x48]);
 
             // The returned bytes are...
             // [0]         [5]                                                    [24]                       [28]
@@ -425,27 +621,46 @@ function startScanSuccess(obj)
             //                                                                     |       Tx Handle                                    | SW Version
             //                                                                    ICD                                                  ICD
 
-            // See if we can match the 128-bit, 16 byte, UUID.  128-bit UUID starts at offset [5].
-            for( i = 5; i < nxty128Uuid.length; i++ )
+            if(u8ScanResults[0] == 0x02)
             {
-                if( u8ScanResults[i] != nxty128Uuid[i] )
+                // Non-microchip
+                // See if we can match the 128-bit, 16 byte, UUID.  128-bit UUID starts at offset [5].
+                for( i = 0; i < nxty128Uuid.length; i++ )
                 {
-                    break;
+                    if( u8ScanResults[i+5] != nxty128Uuid[i] )
+                    {
+                        break;
+                    }
                 }
             }
+            else
+            {
+                // Microchip packet using built in advertising packet...
+                // The returned bytes are...
+                // [0]    [2]                                                      [21]            
+                // "11 07 1b c5 d5 a5 02 00 2d b4 e3 11 00 F0 60 0A D6 48 07 ff 00 02 xx yy 25 29   02 01 06   7 9 43 65 6c 2d 46 69 3 2 34 67 5 ff 0 1 xx yy  ... built in starts with 0x11
+                // "02 01 06 11 06 1b c5 d5 a5 02 00 2d b4 e3 11 00 F0 60 0A D6 48 09 ff 00 02 <6-byte SN>                                                     ... SN added by embedded code.
+                
+                // See if we can match the 128-bit, 16 byte, UUID.  128-bit UUID starts at offset [2].
+                for( i = 0; i < nxty128Uuid.length; i++ )
+                {
+                    if( u8ScanResults[i+2] != nxty128Uuid[i] )
+                    {
+                        break;
+                    }
+                }
+            }
+                
 
 
             if( i == nxty128Uuid.length )
             {
                 PrintLog(10, "BT: Android: Cel-Fi device found based on 128-bit UUID" );
-//jdo                if( obj.address == "05:04:03:02:01:00" )
-                {
-                    bDeviceFound = true;
-                }
+                bDeviceFound = true;
             }
-            else if( obj.name == "Nextivity Bridge" )
+            else if( (obj.name == "Nextivity Bridge") || (obj.name == "CelFi 2451")  || (obj.name == "CelFi 2640") || (obj.name == "CelFi 1871"))
             {
-                PrintLog(10, "BT: Android: Cel-Fi device found based on name: Nextivity Bridge" );
+                PrintLog(10, "BT: Android: Cel-Fi device found based on name: " + obj.name );
                 bDeviceFound = true;
             }
         }
@@ -455,10 +670,8 @@ function startScanSuccess(obj)
           deviceFoundUIFlag = true;
         }
 
-        PrintLog(10, "BT: bDeviceFound=" + bDeviceFound + " myLastBtAddress=" + myLastBtAddress + " bMaxRssiScanning=" + bMaxRssiScanning );
-
         // See if we need to continue scanning to look for max RSSI, only if we have not connected before...
-        if( bDeviceFound && (myLastBtAddress == null) )
+        if( bDeviceFound && (myLastBtAddress == null) && (scanTimer != null) )
         {
             if( bMaxRssiScanning )
             {
@@ -469,31 +682,66 @@ function startScanSuccess(obj)
                     maxRssi      = obj.rssi;
                     maxRssiAddr  = obj.address
                     PrintLog(10, "BT: This Cel-Fi address: " + maxRssiAddr + " has max RSSI so far: " + maxRssi );
+                }
 
-                    if( window.device.platform == iOSPlatform )
+                if( window.device.platform == iOSPlatform )
+                {
+                    uIcd         = u8ScanResults[1];
+                    swVerBtScan  = U8ToHexText(u8ScanResults[2]) + "." + U8ToHexText(u8ScanResults[3]);
+                    snOffset     = 2;
+                }
+                else
+                {
+                    if( u8ScanResults[0] == 0x11 )
                     {
-                        uIcd         = u8ScanResults[1];
-                        swVerBtScan  = U8ToHexText(u8ScanResults[2]) + "." + U8ToHexText(u8ScanResults[3]);
+                        // Microchip offsets for Android built in advertising packet...
+                        uIcd        = u8ScanResults[21];
+                        swVerBtScan = U8ToHexText(u8ScanResults[22]) + "." + U8ToHexText(u8ScanResults[23]);
                     }
                     else
                     {
                         uIcd        = u8ScanResults[24];
                         swVerBtScan = U8ToHexText(u8ScanResults[25]) + "." + U8ToHexText(u8ScanResults[26]);
+                        snOffset     = 25;
                     }
                 }
 
+                // See if this device includes the SN.
+                if( (uIcd & BT_ICD_VER_2) == BT_ICD_VER_2)
+                {
+                    tempSn = "";
+                    for( i = 0; i < 6; i++ )
+                    {
+                        tempSn += U8ToHexText(u8ScanResults[snOffset+i]);
+                    }
+                    PrintLog(1, "BT: Device SN found in Advertising packet.  SN=" + tempSn );
+                    tempSn = "SN:" + tempSn;
+                    tempDeviceIcd = V4_ICD;
+                }
 
                 // Fill the BT address list...
-                for( i = 0; i < (guiDeviceAddrList.length + 1); i++ )
+                for( i = 0; i < (guiDeviceMacAddrList.length + 1); i++ )
                 {
-                    if(typeof guiDeviceAddrList[i] === 'undefined')
+                    if(typeof guiDeviceMacAddrList[i] === 'undefined')
                     {
-                        guiDeviceAddrList.push(obj.address);
+                        guiDeviceMacAddrList.push(obj.address);
                         guiDeviceRssiList.push(obj.rssi);
+                        icdBtList.push(uIcd);
+                        
+                        // Fill remaining lists...
+                        guiDeviceSnList.push(tempSn);
+                        guiDeviceTypeList.push("None");
+                        guiDeviceSubSnList.push("None");
+                        guiDeviceSubCnxList.push("None");
+                        icdDeviceList.push(tempDeviceIcd);
+                        boardCfgList.push(0);
+                        skalBtMacAddrList.push(0);
+
+                        
                         PrintLog(1, "BT: Add to list: " + obj.address + " RSSI: " + obj.rssi + " max RSSI so far:" + maxRssi);
                         break;
                     }
-                    else if( guiDeviceAddrList[i] == obj.address )
+                    else if( guiDeviceMacAddrList[i] == obj.address )
                     {
                         guiDeviceRssiList[i] = obj.rssi;
                         break;
@@ -519,10 +767,13 @@ function startScanSuccess(obj)
                 }
                 else
                 {
-                    PrintLog(1, "BT: This Cel-Fi address: " + obj.address + " matches the last connected Cel-Fi address: " + myLastBtAddress + ".  Reconnecting..." );
-                    bluetoothle.stopScan(stopScanSuccess, stopScanError);
-                    clearScanTimeout();
-                    ConnectBluetoothDevice(myLastBtAddress);
+                    if(connectTimer == null)
+                    {
+                        PrintLog(1, "BT: This Cel-Fi address: " + obj.address + " matches the last connected Cel-Fi address: " + myLastBtAddress + ".  Reconnecting..." );
+                        bluetoothle.stopScan(stopScanSuccess, stopScanError);
+                        clearScanTimeout();
+                        ConnectBluetoothDevice(myLastBtAddress);
+                    }
                 }
             }
         }
@@ -544,8 +795,8 @@ function startScanSuccess(obj)
   }
   else if (obj.status == "scanStarted")
   {
-    PrintLog(1, "BT: Scan was started successfully, stopping in 4 sec.");
-    scanTimer = setTimeout(scanTimeout, 4000);
+    PrintLog(1, "BT: Scan was started successfully, stopping in 8 sec.");
+    scanTimer = setTimeout(scanTimeout, 8000);
   }
   else
   {
@@ -564,8 +815,9 @@ function scanTimeout()
 {
   PrintLog(1, "BT: Scanning time out, stopping");
   bluetoothle.stopScan(stopScanSuccess, stopScanError);
-
-  if( (connectTimer == null) && (guiDeviceFlag == false) && (guiDeviceAddrList.length != 0) )
+  scanTimer = null;
+  
+  if( (connectTimer == null) && (guiDeviceFlag == false) && (guiDeviceMacAddrList.length != 0) )
   {
     tryConnect();
   }
@@ -606,54 +858,73 @@ function UpdateBluetoothIcon(cnx)
 {
     if(cnx)
     {
-       
+      //util.deviceIdentified();
+        
         if( isSouthBoundIfCnx == false )
         {
-            PrintLog(1, "BT: UpdateBluetoothIcon(): Set isSouthBoundIfCnx to true" );
+            PrintLog(1, "BT: Set isSouthBoundIfCnx to true" );
         }
-        
-        if( isSouthBoundIfListDone )
-        {
-            if( document.getElementById("bt_icon_id").innerHTML != szSbIfIconOn )
-            {
-                document.getElementById("bt_icon_id").innerHTML = szSbIfIconOn;
-            }
-            
-            if(bWaveTest)
-            {
-                if( document.getElementById("bt_main_id").innerHTML != szSbIfMainOn )
-                {
-                    document.getElementById("bt_main_id").innerHTML = szSbIfMainOn;
-                }
-            }
-            
-        }
-        
         isSouthBoundIfCnx     = true;
+        
+        if( bSouthBoundSkalCnx == false )
+        {
+            // See if we have connected to a Skal...
+            var cnxIdx = guiDeviceMacAddrList.indexOf(btAddr);
+            
+            if( (icdBtList[cnxIdx] & BT_ICD_TYPE_SKAL) == BT_ICD_TYPE_SKAL)
+            {
+                bSouthBoundSkalCnx = true;
+                bCnxToSkal = true;                // Latch here that we are connected to a Skal...
+
+                nxtyRxStatusIcd = V2_ICD;         // Force PIC ICD to version 2. 
+                PrintLog(1, "BT: Set bSouthBoundSkalCnx to true" );
+                
+//                document.getElementById("searchMessageBox").innerHTML = "Connected to Skal";   // jdo debug  skal debug 
+            }
+            else
+            {
+                bCnxToSkal = false;     
+            }
+            
+            if( (icdBtList[cnxIdx] & BT_ICD_VER_2) == BT_ICD_VER_2)
+            {
+                PrintLog(1, "BT: Set bBtIcdVer2 and bUseThunkLayer to true: Tech data will use ID-Val pairs.  No PIC-ICD status message." );
+                
+                bBtIcdVer2        = true;
+                bUseIdValTechData = true;
+                bUseThunkLayer    = true;
+                bRxThunkPending   = false;
+                Module._ReorderReset(); // reset the thunk counters.
+
+            }
+            else
+            {
+                PrintLog(1, "BT: Set bBtIcdVer2 and bUseThunkLayer to false: Tech data will use C-struct." );
+                bBtIcdVer2        = false;
+                bUseIdValTechData = false;
+                bUseThunkLayer    = false;
+            }
+        }        
+        
     }
     else
     {
         if( isSouthBoundIfCnx == true )
         {
-            PrintLog(1, "BT: UpdateBluetoothIcon(): Set isSouthBoundIfCnx to false" );
+            PrintLog(1, "BT: Set isSouthBoundIfCnx to false" );
         }
-        
-        if( document.getElementById("bt_icon_id").innerHTML != szSbIfIconOff )
-        {
-            document.getElementById("bt_icon_id").innerHTML = szSbIfIconOff;
-        }
-
-        if(bWaveTest)
-        {
-            if( document.getElementById("bt_main_id").innerHTML != szSbIfMainOff )
-            {
-                document.getElementById("bt_main_id").innerHTML = szSbIfMainOff;
-            }
-        }
-        
         isSouthBoundIfCnx     = false;
         isBluetoothSubscribed = false;
         u8ScanResults[0]      = 0;
+  
+/*        
+        if( bSouthBoundSkalCnx )
+        {
+            document.getElementById("searchMessageBox").innerHTML = "Searching..."; // jdo debug  skal debug          
+        }
+*/        
+        bSouthBoundSkalCnx    = false;
+        bBtIcdVer2   = false;
     }
 }
 
@@ -668,14 +939,21 @@ function UpdateBluetoothIcon(cnx)
 // If a timeout occurs, the connection attempt should be canceled using disconnect().
 function ConnectBluetoothDevice(address)
 {
-  PrintLog(1, "BT: ConnectBluetoothDevice(" + address + ")" );
-
-  bBtClosed = false;
-
-  var paramsObj = {"address":address};
-  bluetoothle.connect(connectSuccess, connectError, paramsObj);
-    btAddr        = address;
-  connectTimer = setTimeout(connectTimeout, 5000);
+    if( address != null )
+    {
+        PrintLog(1, "BT: ConnectBluetoothDevice(" + address + ") (Set bBtTryingToCnx=true)" );
+      
+        bBtTryingToCnx = true;
+    
+        var paramsObj = {"address":address};
+        bluetoothle.connect(connectSuccess, connectError, paramsObj);
+        btAddr        = address;
+        connectTimer  = setTimeout(connectTimeout, 4000);
+    }
+    else
+    {
+        PrintLog(1, "BT: ConnectBluetoothDevice(address=null) not connected" );
+    }
 }
 
 function connectSuccess(obj)
@@ -694,7 +972,7 @@ function connectSuccess(obj)
 
     // Must run Discover before subscribing...
     DiscoverBluetoothDevice();
-
+    
   }
   else
   {
@@ -738,7 +1016,7 @@ function clearConnectTimeout()
 // DisconnectBluetoothDevice...................................................................................
 function DisconnectBluetoothDevice()
 {
-    PrintLog(1, "BT: DisconnectBluetoothDevice (disconnect and close)");
+    PrintLog(1, "BT: DisconnectBluetoothDevice(" + btAddr + ") (disconnect and close)" );
     bDisconnectCalled = true;
 
     var paramsObj = {"address":btAddr};
@@ -797,9 +1075,8 @@ function closeSuccess(obj)
 {
     if (obj.status == "closed")
     {
-        PrintLog(1, "BT Closed device");
-        
-        bBtClosed = true;
+        PrintLog(1, "BT: Closed device (bBtTryingToCnx=false)");
+        bBtTryingToCnx = false;
 
         if( bRefreshActive )
         {
@@ -830,7 +1107,8 @@ function DiscoverBluetoothDevice()
     if( window.device.platform == iOSPlatform )
     {
         PrintLog(1, "BT:  IOS platform.  Begin search for bridge service");
-        var paramsObj = {"address":btAddr, "services":[bridgeServiceUuid]};
+//        var paramsObj = {"address":btAddr, "services":[bridgeServiceUuid]};
+        var paramsObj = {"address":btAddr, "services":[myTiServiceUuid,myMcServiceUuid]};
         bluetoothle.services(servicesIosSuccess, servicesIosError, paramsObj);
     }
     else if( window.device.platform == androidPlatform )
@@ -849,18 +1127,73 @@ function servicesIosSuccess(obj)
 //    if( obj.status == "discoveredServices" )          // v1.0.6
     if( obj.status == "services" )                      // v2.0.0
     {
+        // TI product looks like: BT: IOS Service discovered: {"status":"services","name":"Nextivity Bridge","services":["48D60A60-F000-11E3-B42D-0002A5D5C51B"],"address":"9190C10E-3C56-4BA5-87A7-D682B2C87B32"}
+        // MC product looks like: BT: IOS Service discovered: {"status":"services","name":"IS1871","services":[],"address":"055D04DE-FDB8-4CDF-9EC0-3E2DD1515C7E"}
+
+
+        
         PrintLog(1, "BT: IOS Service discovered: " + JSON.stringify(obj));
         var services = obj.services;
-        for( var i = 0; i < services.length; i++ )
+        
+        // try to match service first, if no services listed the try name...
+        if( services.length )
         {
-            var service = services[i];
-
-            if( service == bridgeServiceUuid )
+            for( var i = 0; i < services.length; i++ )
             {
-              PrintLog(1, "BT:  IOS platform.  Finding bridge characteristics...");
-              var paramsObj = {"address":btAddr, "service":bridgeServiceUuid, "characteristics":[bridgeTxCharacteristicUuid, bridgeRxCharacteristicUuid]};
-              bluetoothle.characteristics(characteristicsIosSuccess, characteristicsIosError, paramsObj);
-              return;
+                var service = services[i];
+    
+                PrintLog(1, "BT: IOS service=" + service );
+                
+                if( service.toUpperCase() == myTiServiceUuid.toUpperCase() )    // "48d60a60-f000-11e3-b42d-0002a5d5c51b"
+                {
+                    bridgeServiceUuid           = myTiServiceUuid;              // "48d60a60-f000-11e3-b42d-0002a5d5c51b";
+                    bridgeTxCharacteristicUuid  = myTiTxCharacteristicUuid;     // "6711";       // Tx from the bluetooth device profile, Rx for the phone app.
+                    bridgeRxCharacteristicUuid  = myTiRxCharacteristicUuid;     // "6722";       // Rx from our bluetooth device profile, Tx for the phone app.
+    
+                    PrintLog(1, "BT:  IOS platform (TI chip found).  Finding bridge characteristics...");
+                    var paramsObj = {"address":btAddr, "service":bridgeServiceUuid, "characteristics":[bridgeTxCharacteristicUuid, bridgeRxCharacteristicUuid]};
+                    bluetoothle.characteristics(characteristicsIosSuccess, characteristicsIosError, paramsObj);
+                    return;
+                }
+                else if( service.toUpperCase() == myMcServiceUuid.toUpperCase() )    // "49535343-fe7d-4ae5-8fa9-9fafd205e455"
+                {
+                    bridgeServiceUuid           = myMcServiceUuid;
+                    bridgeTxCharacteristicUuid  = myMcTxCharacteristicUuid;
+                    bridgeRxCharacteristicUuid  = myMcRxCharacteristicUuid;
+    
+                    PrintLog(1, "BT:  IOS platform (Microchip found).  Finding bridge characteristics...");
+                    var paramsObj = {"address":btAddr, "service":bridgeServiceUuid, "characteristics":[bridgeTxCharacteristicUuid, bridgeRxCharacteristicUuid]};
+                    bluetoothle.characteristics(characteristicsIosSuccess, characteristicsIosError, paramsObj);
+                    return;
+                }
+                
+            }
+        }
+        else
+        {
+            PrintLog(1, "BT: IOS name=" + obj.name );
+            
+            if( obj.name == "Nextivity Bridge" )
+            {
+                bridgeServiceUuid           = myTiServiceUuid;              // "48d60a60-f000-11e3-b42d-0002a5d5c51b";
+                bridgeTxCharacteristicUuid  = myTiTxCharacteristicUuid;     // "6711";       // Tx from the bluetooth device profile, Rx for the phone app.
+                bridgeRxCharacteristicUuid  = myTiRxCharacteristicUuid;     // "6722";       // Rx from our bluetooth device profile, Tx for the phone app.
+
+                PrintLog(1, "BT:  IOS platform (TI chip found).  Finding bridge characteristics...");
+                var paramsObj = {"address":btAddr, "service":bridgeServiceUuid, "characteristics":[bridgeTxCharacteristicUuid, bridgeRxCharacteristicUuid]};
+                bluetoothle.characteristics(characteristicsIosSuccess, characteristicsIosError, paramsObj);
+                return;
+            }
+            else if( obj.name == "IS1871" ) 
+            {
+                bridgeServiceUuid           = myMcServiceUuid;
+                bridgeTxCharacteristicUuid  = myMcTxCharacteristicUuid;
+                bridgeRxCharacteristicUuid  = myMcRxCharacteristicUuid;
+
+                PrintLog(1, "BT:  IOS platform (Microchip found).  Finding bridge characteristics...");
+                var paramsObj = {"address":btAddr, "service":bridgeServiceUuid, "characteristics":[bridgeTxCharacteristicUuid, bridgeRxCharacteristicUuid]};
+                bluetoothle.characteristics(characteristicsIosSuccess, characteristicsIosError, paramsObj);
+                return;
             }
         }
 
@@ -894,7 +1227,7 @@ function characteristicsIosSuccess(obj)
         {
             var characteristicUuid = characteristics[i].uuid;
 
-            if( characteristicUuid == bridgeRxCharacteristicUuid )
+            if( characteristicUuid.toUpperCase() == bridgeRxCharacteristicUuid.toUpperCase() )
             {
                 var paramsObj = {"address":btAddr, "service":bridgeServiceUuid, "characteristic":bridgeRxCharacteristicUuid};
                 bluetoothle.descriptors(descriptorsIosRxSuccess, descriptorsIosRxError, paramsObj);
@@ -924,7 +1257,7 @@ function descriptorsIosRxSuccess(obj)
 //    if (obj.status == "discoveredDescriptors")    // v1.0.6
     if (obj.status == "descriptors")                // v2.0.0
     {
-        PrintLog(1, "BT: Rx Discovery completed.  Name: " + obj.name + " add: " + obj.address + "stringify: " + JSON.stringify(obj));
+        PrintLog(1, "BT: Rx Discovery completed.  Name: " + obj.name + " add: " + obj.address + "  stringify: " + JSON.stringify(obj));
         var paramsObj = {"address":btAddr, "service":bridgeServiceUuid, "characteristic":bridgeTxCharacteristicUuid};
         bluetoothle.descriptors(descriptorsIosTxSuccess, descriptorsIosTxError, paramsObj);
     }
@@ -948,7 +1281,7 @@ function descriptorsIosTxSuccess(obj)
 {
     if (obj.status == "descriptors")
     {
-        PrintLog(1, "BT: Tx Discovery completed, now subscribe.  Name: " + obj.name + " add: " + obj.address + "stringify: " + JSON.stringify(obj));
+        PrintLog(1, "BT: Tx Discovery completed, now subscribe.  Name: " + obj.name + " add: " + obj.address + "  stringify: " + JSON.stringify(obj));
 
         // Now subscribe to the bluetooth tx characteristic...
         SubscribeBluetoothDevice();
@@ -974,15 +1307,37 @@ function discoverSuccess(obj)
 {
     if (obj.status == "discovered")
     {
-        PrintLog(1, "BT: Discovery completed.  Name: " + obj.name + " add: " + obj.address + "stringify: " + JSON.stringify(obj));
+        PrintLog(1, "BT: Discovery completed.  Name: " + obj.name + " add: " + obj.address + "  stringify: " + JSON.stringify(obj));
 
+        // Default to TI services...
+        bridgeServiceUuid           = myTiServiceUuid;              // "48d60a60-f000-11e3-b42d-0002a5d5c51b";
+        bridgeTxCharacteristicUuid  = myTiTxCharacteristicUuid;     // "6711";       // Tx from the bluetooth device profile, Rx for the phone app.
+        bridgeRxCharacteristicUuid  = myTiRxCharacteristicUuid;     // "6722";       // Rx from our bluetooth device profile, Tx for the phone app.
+        
+        
+        for( var i = 0; i < obj.services.length; i++ )
+        {
+            PrintLog(1, "  services:" + obj.services[i].uuid );
+            if( obj.services[i].uuid.toUpperCase() == myMcServiceUuid.toUpperCase() )
+            {
+                PrintLog(1, "  Microchip BTLE discovered...use transparent services...")
+
+                bridgeServiceUuid           = myMcServiceUuid;
+                bridgeTxCharacteristicUuid  = myMcTxCharacteristicUuid;
+                bridgeRxCharacteristicUuid  = myMcRxCharacteristicUuid;
+                break;
+            }
+        }
+        
+        
         // Now subscribe to the bluetooth tx characteristic...
         SubscribeBluetoothDevice();
 
         // Start subscribing for the notifications in 1 second to allow any connection changes
         // to take place.
 //        subscribeTimer = setTimeout(SubscribeBluetoothDevice, 1000);
-        if( window.device.platform == androidPlatform ) {
+        if( window.device.platform == androidPlatform  ) 
+        {
             requestConnectionPriority("high"); //Request a higher connection on Android (lowers connection interval?)
         }
     }
@@ -1015,6 +1370,8 @@ function requestConnectionPriority(connectionPriority) {
 //  Subscribe means to listen on this UUID, i.e. channel, from the BLE device.
 function SubscribeBluetoothDevice()
 {
+    PrintLog(1, "BT: SubscribeBluetoothDevice()" );
+
     // Version 1.0.2 of the plugin
     var paramsObj = {"address":btAddr, "service":bridgeServiceUuid, "characteristic":bridgeTxCharacteristicUuid, "isNotification":true};
 
@@ -1028,9 +1385,76 @@ function subscribeSuccess(obj)
     {
         PrintLog(10, "BT: Subscription data received");
 
-        var bytes = bluetoothle.encodedStringToBytes(obj.value);
-
-        nxty.ProcessNxtyRxMsg( bytes, bytes.length );
+        // If we have asked for a disconnect, then do not process any more Rx data...
+        if( bDisconnectCalled == false )
+        {
+            var u8 = bluetoothle.encodedStringToBytes(obj.value);
+            if (u8.length != 0)
+            {
+                if(bUseThunkLayer)      // Rx from BT into thunker
+                {
+/*                    
+                    if( PrintLogLevel >= 2 )
+                    {
+                        var outText = u8[0].toString(16);    // Convert to hex output...
+                        for( var i = 1; i < u8.length; i++ )
+                        {
+                            if( !(i%44) )
+                            {
+                                PrintLog(2,  "Msg Rx:d: " + outText );
+                                outText = u8[i].toString(16);
+                            }
+                            else
+                            {
+                                outText = outText + " " + u8[i].toString(16);
+                            }
+                        }
+                        
+                        if( outText.length > 0 )
+                        {
+                            PrintLog(2,  "Msg Rx:d: " + outText );
+                        }
+                       
+                    }
+*/
+                    
+                    for( var i = 0; i < u8.length; i++ )
+                    {
+                        u8ThunkRx[i] = u8[i];
+                    }
+                    
+                    u8ThunkRxCount      += (u8.length - 4);
+                    u8ThunkRxCountTotal += (u8.length - 4);
+                    
+                    // bluetooth --> In  --- thunk - thunk - thunk --> ReadRxThunkOut --> nxty ICD msg
+//                    if( (window.device.platform == androidPlatform) && (parseFloat(window.device.version) < 8) )      // Android 8.0 is API 26 
+                    if( (window.device.platform == androidPlatform) )      
+                    {
+                        Module._ReadRxThunkInReorder( u8ThunkRx.byteOffset, u8.length );
+                    }
+                    else
+                    {
+                        // IOS does not have the modified plugin so feed the packets in directly.  IOS should not have the reordering problem.
+                        Module._ReadRxThunkIn( u8ThunkRx.byteOffset, u8.length );
+                    }
+                     
+                }
+                else
+                {
+                    // An Android platform has the modified BT plugin which adds 4 bytes to the front for reordering.
+                    if( (window.device.platform == androidPlatform) )      
+                    {
+                        nxty.ProcessNxtyRxMsg( u8.slice(4), (u8.length - 4) );
+                    }
+                    else
+                    {
+                        // IOS does not have the modified plugin.
+                        nxty.ProcessNxtyRxMsg( u8, u8.length );
+                    }
+                        
+                }
+            }
+        }
 
     }
     else if (obj.status == "subscribed")
@@ -1038,14 +1462,8 @@ function subscribeSuccess(obj)
         PrintLog(1, "BT: Subscription started - BT now able to receive Rx msgs.");
         ClearNxtyMsgPending();              // Make sure not stuck waiting for a response...
         isBluetoothSubscribed = true;
-        
-        if( isSouthBoundIfListDone )
-        {
-            UpdateBluetoothIcon( true );        // Wait until here before saying isSouthBoundIfCnx
-        }
-
-        isSouthBoundIfCnx     = true;           // Always indicate connected if subscribed.
-        bDisconnectCalled = false;
+        UpdateBluetoothIcon( true );        // Wait until here before saying isSouthBoundIfCnx
+        bDisconnectCalled = false;          // Allow Rx Data to be processed...
     }
     else
     {
@@ -1092,33 +1510,108 @@ function unsubscribeError(obj)
 // WriteSouthBoundData........................................................................
 function WriteSouthBoundData( u8 )
 {
-
-    if( PrintLogLevel >= 2 )
+    if( isSouthBoundIfCnx == false )
     {
-        var outText = u8[0].toString(16);    // Convert to hex output...
-        for( var i = 1; i < u8.length; i++ )
+        PrintLog(99, "BT: WriteSouthBoundData()...BT not connected..." ); 
+        return(false);
+    }
+    
+    // For Skal non-AB messages, add the prefix 0x2A, len, crclen.  
+    // Note that the Skal BT processor will strip off the 3 bytes before sending to GO.
+    if( bSouthBoundSkalCnx )
+    {
+        if( !((u8[0] == NXTY_SKAL_THRU_PREFIX) || (u8[0] == NXTY_V2_AB_PREFIX)) )
         {
-            if( !(i%44) )
+            var u8Temp  = new Uint8Array(u8.length + 3);
+            u8Temp[0] = NXTY_SKAL_THRU_PREFIX;
+            u8Temp[1] = u8.length;
+            u8Temp[2] = nxty.CalcCrc8Byte( u8Temp[1] );
+            
+            for( var i = 0; i < u8.length; i++ )
             {
-                PrintLog(2,  "Msg Tx: " + outText );
-                outText = u8[i].toString(16);
+                u8Temp[3+i] = u8[i];
             }
-            else
-            {
-                outText = outText + " " + u8[i].toString(16);
-            }
-        }
-        
-        if( outText.length > 0 )
-        {
-            PrintLog(2,  "Msg Tx: " + outText );
+            
+            u8 = u8Temp.slice(0);
         }
     }
 
-    var paramsObj = {"address":btAddr, "value":bluetoothle.bytesToEncodedString(u8), "service":bridgeServiceUuid, "characteristic":bridgeRxCharacteristicUuid, "type":"noResponse"};
-    bluetoothle.writeQ(writeSuccess, writeError, paramsObj);
 
-    return;
+    if(bUseThunkLayer)  // Tx to thunker...
+    {
+        if( bRxThunkPending == false )
+        {
+            bRxThunkPending = true;
+         
+            if( PrintLogLevel >= 2 )
+            {
+                var outText = u8[0].toString(16);    // Convert to hex output...
+                for( var i = 1; i < u8.length; i++ )
+                {
+                    if( !(i%44) )
+                    {
+                        PrintLog(2,  "Msg Tx: " + outText );
+                        outText = u8[i].toString(16);
+                    }
+                    else
+                    {
+                        outText = outText + " " + u8[i].toString(16);
+                    }
+                }
+                
+                if( outText.length > 0 )
+                {
+                    PrintLog(2,  "Msg Tx: " + outText );
+                }
+            }
+
+            for( var i = 0; i < u8.length; i++ )
+            {
+                u8ThunkTx[i] = u8[i];
+            }
+            
+            // In  --- thunk - thunk - thunk --> SendTxThunkOut --> bluetooth
+            Module._SendTxThunkIn( u8ThunkTx.byteOffset, u8.length );
+        }
+        else
+        {
+            PrintLog(99, "BT: Waiting on Thunk Response from ReadRxThunkOut(). Tx aborted." );
+            ClearNxtyMsgPending();              // Make sure not stuck waiting for a response...
+            return(false);
+        }
+    }
+    else
+    {
+        if( PrintLogLevel >= 2 )
+        {
+            var outText = u8[0].toString(16);    // Convert to hex output...
+            for( var i = 1; i < u8.length; i++ )
+            {
+                if( !(i%44) )
+                {
+                    PrintLog(2,  "Msg Tx: " + outText );
+                    outText = u8[i].toString(16);
+                }
+                else
+                {
+                    outText = outText + " " + u8[i].toString(16);
+                }
+            }
+            
+            if( outText.length > 0 )
+            {
+                PrintLog(2,  "Msg Tx: " + outText );
+            }
+        }
+
+        var paramsObj = {"address":btAddr, "value":bluetoothle.bytesToEncodedString(u8), "service":bridgeServiceUuid, "characteristic":bridgeRxCharacteristicUuid, "type":"noResponse"};
+        bluetoothle.writeQ(writeSuccessQ, writeErrorQ, paramsObj);
+    }
+
+    return(true);
+
+/*
+jdo: old way of delevering messages based on time and connection interval.
 
     var i;
 
@@ -1144,12 +1637,71 @@ function WriteSouthBoundData( u8 )
         maxPhoneBuffer = 1;
     }
 
-// Note for LNT: Here is where I would like to call writeQ and not call WriteBluetoothDeviceEx().
-// bluetoothle.writeQ(writeSuccess, writeError, paramsObj[j]);
-
-
     // Do it....
     WriteBluetoothDeviceEx();
+*/    
+}
+
+
+function writeSuccessQ(obj)
+{
+//  PrintLog(1, "BT: WriteQ success: " + obj.status);
+    if(bUseThunkLayer)  // Tx to thunker...
+    {
+        Module._TxComplete();
+    }
+}
+
+function writeErrorQ(msg)
+{
+    PrintLog(99, "BT: WriteQ error: " + msg.error + " - " + msg.message);
+    
+    if(bUseThunkLayer)  // Tx to thunker...
+    {
+        Module._TxComplete();
+    }
+}
+
+
+// Output of the thunker...
+// 
+function SendTxThunkOut(u8)
+{
+/*    
+    if( PrintLogLevel >= 2 )
+    {
+        var outText = u8[0].toString(16);    // Convert to hex output...
+        for( var i = 1; i < u8.length; i++ )
+        {
+            if( !(i%44) )
+            {
+                PrintLog(2,  "Msg Tx:d: " + outText );
+                outText = u8[i].toString(16);
+            }
+            else
+            {
+                outText = outText + " " + u8[i].toString(16);
+            }
+        }
+        
+        if( outText.length > 0 )
+        {
+            PrintLog(2,  "Msg Tx:d: " + outText );
+        }
+    }
+*/
+    
+    var paramsObj = {"address":btAddr, "value":bluetoothle.bytesToEncodedString(u8), "service":bridgeServiceUuid, "characteristic":bridgeRxCharacteristicUuid, "type":"noResponse"};
+    bluetoothle.writeQ(writeSuccessQ, writeErrorQ, paramsObj);
+}
+
+// Rx thunker thinks it has a message, so drop into our normal processing...
+function ReadRxThunkOut(u8)
+{
+    u8IcdRxCountTotal += u8.length;
+    PrintLog(1,  "Rx Stat: RxR Total=" + u8ThunkRxCountTotal + " RxIcd Total=" + u8IcdRxCountTotal );
+    bRxThunkPending = false;
+    nxty.ProcessNxtyRxMsg( u8, u8.length );
 }
 
 
@@ -1366,11 +1918,11 @@ function SetMaxTxPhoneBuffers(numBuffers)
 // ConnectSouthBoundIf........................................................................
 function ConnectSouthBoundIf(myIdx)
 {
-    PrintLog(1, "BT: ConnectSouthBoundIf(" + myIdx + ") addr: " + guiDeviceAddrList[myIdx] );
-    ConnectBluetoothDevice( guiDeviceAddrList[myIdx] );
+    PrintLog(1, "BT: ConnectSouthBoundIf(" + myIdx + ") addr: " + guiDeviceMacAddrList[myIdx] );
+    ConnectBluetoothDevice( guiDeviceMacAddrList[myIdx] );
 
     // Start the saftey check...
-    BluetoothCnxTimer = setTimeout(BluetoothLoop, 5000);
+    BluetoothCnxTimer = setTimeout(BluetoothLoop, 10000);
 }
 
 
@@ -1396,19 +1948,32 @@ function DisconnectAndStopSouthBoundIf()
 }
 
 // RestartSouthBoundIf........................................................................
-function RestartSouthBoundIf(bClean)
+function RestartSouthBoundIf(bClean, bClearBabbleList)
 {
     if( bClean )
     {
-        PrintLog(1, "BT: RestartSouthBoundIf( CLEAN )..." );
+        PrintLog(1, "BT: RestartSouthBoundIf( CLEAN )" );
+       
         
         // Clear any history...
         myLastBtAddress   = null;
-        guiDeviceAddrList = [];               
-        guiDeviceRssiList = [];               
-        guiDeviceList     = [];
-        icdDeviceList     = []; 
-        boardCfgList      = [];
+        guiDeviceMacAddrList = [];     
+        icdBtList            = [];
+        guiDeviceRssiList    = [];               
+        guiDeviceSnList      = [];
+        guiDeviceTypeList    = [];
+        guiDeviceSubSnList   = [];
+        guiDeviceSubCnxList  = [];
+        icdDeviceList        = []; 
+        boardCfgList         = [];
+        bBtTryingToCnx       = false;
+        bTryConnectCalled    = false;
+        
+        if( bClearBabbleList )
+        {
+            PrintLog(1, "  - clear babbling MAC addresses..." );
+            window.localStorage.removeItem( BABBLING_MAC_ID );
+        }
         
         BluetoothLoop();
     }
@@ -1416,7 +1981,7 @@ function RestartSouthBoundIf(bClean)
     {
         PrintLog(1, "BT: RestartSouthBoundIf(" + myLastBtAddress + ")..." );
         
-        if( isSouthBoundIfCnx == false )
+        if( (isSouthBoundIfCnx == false) && (myLastBtAddress != null) )
         {
             ConnectBluetoothDevice(myLastBtAddress);
         }
@@ -1424,7 +1989,7 @@ function RestartSouthBoundIf(bClean)
         // Start the loop again...
         if( BluetoothCnxTimer == null )
         {
-            BluetoothCnxTimer = setTimeout(BluetoothLoop, 5000);
+            BluetoothCnxTimer = setTimeout(BluetoothLoop, 10000);
         }
     }
     
@@ -1461,28 +2026,43 @@ function rssiError(msg)
 
 
 
+//----------------------------------------------------------------------------------------
+function ReverseArrayItems( myRevArray, myRevIdx )
+{
+    var temp;
+    
+    if( myRevArray.length >= 1 )
+    {
+        temp = myRevArray[myRevIdx-1];       
+        myRevArray[myRevIdx-1] = myRevArray[myRevIdx];      
+        myRevArray[myRevIdx] = temp;
+    }
+    else
+    {
+        PrintLog(99, "BT: ReverseArrayItems() array < 1" );
+    }
+}
 
 //----------------------------------------------------------------------------------------
-var numDevFound      = 0;
 function tryConnect()
 {
-    // Use guiDeviceList.length as a flag to indicate that we have already been this way just in case
-    // called multile times while searching for guiDeviceAddrList[].
-    if( guiDeviceList.length == 0 )
+    // See if we have already been this way just in case called multile times while searching for guiDeviceMacAddrList[].
+    if( bTryConnectCalled == false )
     {
-        PrintLog(1, "BT: List of BT devices complete.  Number of BT MAC Addresses found = " + guiDeviceAddrList.length );
+        bTryConnectCalled = true;
+        PrintLog(1, "BT: List of BT devices complete.  Number of BT MAC Addresses found = " + guiDeviceMacAddrList.length );
 
 /*
 jdo: no longer connect automatically if only 1 BT since we now need to read the board config first.
 
         // Automatically connect if only 1 BT in the area...
-        if( guiDeviceAddrList.length == 1 )
+        if( guiDeviceMacAddrList.length == 1 )
         {
             PrintLog(1, "BT: FindMyCelfi() will not be called since only one BT device found and we do not have ICD version yet." );
             
             if( maxRssiAddr == null )
             {
-                ConnectBluetoothDevice(guiDeviceAddrList[0]);
+                ConnectBluetoothDevice(guiDeviceMacAddrList[0]);
             }
             else
             {
@@ -1491,52 +2071,75 @@ jdo: no longer connect automatically if only 1 BT since we now need to read the 
             
             isSouthBoundIfListDone = true;      // Main app loop must be placed on hold until true.
         }
-        else if(guiDeviceAddrList.length > 1)
+        else if(guiDeviceMacAddrList.length > 1)
 */
         
         {
 
             // Sort the list based on RSSI power...
-            var tempAddr;
-            var tempRssi;
-            for( var i = 0; i < guiDeviceAddrList.length; i++ )
+            for( var i = 0; i < guiDeviceMacAddrList.length; i++ )
             {
-                for( var j = 1; j < guiDeviceAddrList.length; j++ )
+                for( var j = 1; j < guiDeviceMacAddrList.length; j++ )
                 {
                     if( guiDeviceRssiList[j] > guiDeviceRssiList[j-1] )
                     {
                         // Reverse...
-                        tempAddr = guiDeviceAddrList[j-1];
-                        tempRssi = guiDeviceRssiList[j-1];
-                        guiDeviceAddrList[j-1] = guiDeviceAddrList[j];
-                        guiDeviceRssiList[j-1] = guiDeviceRssiList[j];
-                        guiDeviceAddrList[j]   = tempAddr;
-                        guiDeviceRssiList[j]   = tempRssi;
+                        ReverseArrayItems(guiDeviceMacAddrList, j);
+                        ReverseArrayItems(guiDeviceRssiList, j);
+                        ReverseArrayItems(icdBtList, j);
+                        ReverseArrayItems(guiDeviceSnList, j);
+                        ReverseArrayItems(guiDeviceTypeList, j);
+                        ReverseArrayItems(guiDeviceSubSnList, j);
+                        ReverseArrayItems(guiDeviceSubCnxList, j);
+                        ReverseArrayItems(icdDeviceList, j);
+                        ReverseArrayItems(boardCfgList, j);
+                        ReverseArrayItems(skalBtMacAddrList, j);
                     }
                 }
             }
 
+            
+/*
+Do not fill here.  Now filled when a MAC address found...            
             // As a default throw the text "None" in the device list which will eventually contain SNs...
-            for( var i = 0; i < guiDeviceAddrList.length; i++ )
+            for( var i = 0; i < guiDeviceMacAddrList.length; i++ )
             {
-                guiDeviceList.push("None");
+                guiDeviceSnList.push("None");
+                guiDeviceTypeList.push("None");
+                guiDeviceSubSnList.push("None");
+                guiDeviceSubCnxList.push("None");
                 icdDeviceList.push(0);
                 boardCfgList.push(0);
+                skalBtMacAddrList.push(0);
             }
-
+*/
 
     //        guiDeviceFlag = true;
             clearTimeout(BluetoothCnxTimer);
             BluetoothCnxTimer = null;
 
-            PrintLog(1, "guiDeviceAddrList      = " + JSON.stringify(guiDeviceAddrList) ); // An array of device BT addresses to select.
+            var tempIcdBtList = icdBtList.slice(0);
+            PrintLog(1, "guiDeviceMacAddrList   = " + JSON.stringify(guiDeviceMacAddrList) ); // An array of device BT addresses to select.
+            PrintLog(1, "icdBtList              = " + JSON.stringify(tempIcdBtList, stringifyReplaceToHex) );     // An array of BT ICD versions.
             PrintLog(1, "guiDeviceRssiList      = " + JSON.stringify(guiDeviceRssiList) ); // An array of RSSI values.
-            PrintLog(1, "guiDeviceList          = " + JSON.stringify(guiDeviceList) );     // An array of Serial Numbers.
+            PrintLog(1, "guiDeviceSnList        = " + JSON.stringify(guiDeviceSnList) );     // An array of Serial Numbers.
 
             // Get the Serial Numbers for all detected BT devices...
             getSnIdx    = 0;
             getSnState  = 0;
-            numDevFound = 0;
+            guiNumDevicesFound = 0;
+            
+
+            var tempList = window.localStorage.getItem( BABBLING_MAC_ID );
+            if( tempList == null )
+            {
+                babblingMacsList    = [];
+            }
+            else
+            {
+                babblingMacsList = JSON.parse(window.localStorage.getItem( BABBLING_MAC_ID ));
+            }
+            PrintLog(1, "BT: Babbling MAC list:" + babblingMacsList );
             setTimeout( GetDeviceSerialNumbersLoop, 100 );
         }
     }
@@ -1547,16 +2150,57 @@ jdo: no longer connect automatically if only 1 BT since we now need to read the 
 var getSnLoopCounter = 0;
 function GetDeviceSerialNumbersLoop()
 {
+    var i;
+    PrintLog(10, "BT: GetDeviceSerialNumbersLoop()... idx=" + getSnIdx + " state=" + getSnState + " Counter=" + getSnLoopCounter + " len=" + guiDeviceSnList.length );
 
-    PrintLog(10, "BT: GetDeviceSerialNumbersLoop()... idx=" + getSnIdx + " state=" + getSnState + " Counter=" + getSnLoopCounter + " len=" + guiDeviceList.length );
-
-    // Find the SNs and place in guiDeviceAddrList[] up to a max of 5.
-    if( (getSnIdx < guiDeviceAddrList.length) && (numDevFound < 5)  )
+    // Find the SNs and place in guiDeviceSnList[] up to a max of 8.
+    if( (getSnIdx < guiDeviceMacAddrList.length) && (guiNumDevicesFound < 8) && (bPhoneInBackground == false)  )
     {
+/*        
+        if( guiDeviceMacAddrList[getSnIdx] != "98:07:2D:AF:55:2A" )     // Eric's Skal for testing
+//        if( guiDeviceMacAddrList[getSnIdx] != "B0:B4:48:D2:C0:03" )     // John's Skal for testing
+        {
+            PrintLog(1, "BT: Skip BT device " +  guiDeviceMacAddrList[getSnIdx] + "  Not target Skal" );
+            getSnIdx++;
+            getSnLoopCounter = 0;
+            
+        }
+        else if( guiDeviceRssiList[getSnIdx] < -95 )
+*/      
+        var bBabblingMac = false;
+        for( i = 0; i < babblingMacsList.length; i++)
+        {
+            if( babblingMacsList[i] == guiDeviceMacAddrList[getSnIdx] ) 
+            {
+                bBabblingMac = true; 
+            }
+        }
+        
         if( guiDeviceRssiList[getSnIdx] < -95 )
         {
-            PrintLog(1, "BT: Skip BT device " +  guiDeviceAddrList[getSnIdx] + "  RSSI below -95.  RSSI = " + guiDeviceRssiList[getSnIdx] );
+            PrintLog(1, "BT: Skip BT device " +  guiDeviceMacAddrList[getSnIdx] + "  RSSI below -95.  RSSI = " + guiDeviceRssiList[getSnIdx] );
             getSnIdx++;
+            getSnLoopCounter = 0;
+        }
+        else if( bBabblingMac )
+        {
+            PrintLog(1, "BT: Skip BT device " +  guiDeviceMacAddrList[getSnIdx] + ", previously noted as babbling." );
+            getSnIdx++;
+            getSnLoopCounter = 0;
+        }
+        else if( guiDeviceSnList[getSnIdx] != "None" )
+        {
+            PrintLog(1, "BT: Skip BT device, SN already found.  SN=" +  guiDeviceSnList[getSnIdx] );
+            guiNumDevicesFound++;
+           
+            if( guiNumDevicesFound == 1 )
+            {
+                // Save the index just in case this is the only one found...
+                firstFoundIdx = getSnIdx;
+            }
+            getSnIdx++;
+            getSnLoopCounter = 0;
+
         }
         else
         {
@@ -1566,10 +2210,11 @@ function GetDeviceSerialNumbersLoop()
                 case 0:
                 {
                     myLastBtAddress = null;             // Make sure no memory of previous connections.
-                    if( isSouthBoundIfCnx == false )
+                    SouthBoundCnxErrorCount = 0;
+                    if( (isSouthBoundIfCnx == false) && (bBtTryingToCnx == false) )
                     {
                         getSnLoopCounter = 0;
-                        ConnectBluetoothDevice(guiDeviceAddrList[getSnIdx]);
+                        ConnectBluetoothDevice(guiDeviceMacAddrList[getSnIdx]);
                         getSnState = 1;
                     }
                     break;
@@ -1580,13 +2225,34 @@ function GetDeviceSerialNumbersLoop()
                 {
                     if( isSouthBoundIfCnx )
                     {
-                        isNxtyStatusCurrent = false;
-    
-                        // Get the ICD version by getting the status message...
-                        var u8TempBuff  = new Uint8Array(2);
-                        u8TempBuff[0] = NXTY_PHONE_ICD_VER;
-                        nxty.SendNxtyMsg(NXTY_STATUS_REQ, u8TempBuff, 1);
-                        getSnState = 2;
+                        if( (icdBtList[getSnIdx] & BT_ICD_TYPE_SKAL) == BT_ICD_TYPE_SKAL)
+                        {
+                            // Just connected to a Skal...shut down any logging so the SN does not get messed with...
+                            PrintLog(1, "BT: Skal: shut down PIC-GO logging for now...");
+                            guiDeviceTypeList[getSnIdx] = "Antenna";         // An array of device types, "Antenna", "2BoxNu", "2BoxCu", "1Box", "Cable"  (Antenna for Skal)
+                            var u8TempBuff  = new Uint8Array(2);
+                            u8TempBuff[0] = 0;                              // disable logging
+                            nxty.SendNxtyMsg(NXTY_AB_SET_SKAL_GO_LOG_REQ, u8TempBuff, 1);
+                            getSnState = 2;
+                        }
+                        else
+                        {
+                            if( bUseThunkLayer )
+                            {
+                                // Status command is not valid for BT_ICD_VER_2....
+                                isNxtyStatusCurrent = true;
+                            }
+                            else
+                            {
+                                isNxtyStatusCurrent = false;
+            
+                                // Get the ICD version by getting the status message...
+                                var u8TempBuff  = new Uint8Array(2);
+                                u8TempBuff[0] = NXTY_PHONE_ICD_VER;
+                                nxty.SendNxtyMsg(NXTY_STATUS_REQ, u8TempBuff, 1);
+                            }
+                            getSnState = 2;
+                        }
                     }
                     break;
                 }
@@ -1594,64 +2260,82 @@ function GetDeviceSerialNumbersLoop()
                 // Wait until ICD version known and then get Serial Number...
                 case 2:
                 {
-                    if( isNxtyStatusCurrent )
+                    if( (icdBtList[getSnIdx] & BT_ICD_TYPE_SKAL) == BT_ICD_TYPE_SKAL)
                     {
-                        icdDeviceList[getSnIdx] = nxtyRxStatusIcd;
-                        if( nxtyRxStatusIcd <= V1_ICD )
+                        // Skal...move along once we have received a response...
+                        if( msgRxLastCmd != NXTY_WAITING_FOR_RSP )
                         {
-                            // Board config is returned in V1 status message.
-                            boardCfgList[getSnIdx] = nxtyRxStatusBoardConfig;
-                            
-                            if( (boardCfgList[getSnIdx] & BOARD_CFG_CABLE_BOX_BIT) == BOARD_CFG_USE_THIS_DEVICE )
-                            {
-                                // Old ICD...do not update automatically...
-                                // When this BT logic was added the v1 protocol had been removed.
-                                //   V1 protocol was later added but SN was never added for V1.  
-                                guiDeviceList[getSnIdx] = "Connect to Update";
-                                numDevFound++;
-        
-                                if( numDevFound == 1 )
-                                {
-                                    // Save the index just in case this is the only one found...
-                                    firstFoundIdx = getSnIdx;
-                                }
-                                    
-                                if( bPrivacyViewed == true )
-                                {
-                                    var outText = "Found " + numDevFound + " ";
-                                    if( numDevFound == 1 )
-                                    {
-                                        outText += "CelFiDevice";
-                                    }
-                                    else
-                                    {
-                                        outText += "CelFiDevices";
-                                    }
-
-                                    document.getElementById("searchMessageBox").innerHTML = outText;
-                                    UpdateStatusLine( outText );
-                                }
-                            }
-                            
-                            // Disconnect from BT...
-                            DisconnectBluetoothDevice();
-                            getSnState = 0;
-                            getSnIdx++;
-                        }
-                        else
-                        {
-                            PrintLog(1, "BT: Calling GetBoardConfig()" );
-                        
-                            GetBoardConfig();   // Get the board config to see if cable box, bit 14 set, or not.
                             getSnState = 3;
+                            icdDeviceList[getSnIdx] = V2_ICD;         // Force PIC ICD to version 2 for Skal
                         }
                     }
                     else
                     {
-                        if( getSnLoopCounter == 10 )
+                        // Non Skal: 
+                        if( isNxtyStatusCurrent )
                         {
-                            // Try sending again...
-                            getSnState = 1;
+                            if( bUseThunkLayer )
+                            {
+                                nxtyRxStatusIcd = V4_ICD;         // Use thunk layre with debug protocol: Force PIC ICD to version 4 for BT version 2, BT_ICD_VER_2.
+                            }
+
+                            icdDeviceList[getSnIdx] = nxtyRxStatusIcd;
+                            
+                            if( nxtyRxStatusIcd <= V1_ICD )
+                            {
+                                // Board config is returned in V1 status message.
+                                boardCfgList[getSnIdx] = nxtyRxStatusBoardConfig;
+                                
+                                if( (boardCfgList[getSnIdx] & BOARD_CFG_CABLE_BOX_BIT) == BOARD_CFG_USE_THIS_DEVICE )
+                                {
+                                    // Old ICD...do not update automatically...
+                                    // When this BT logic was added the v1 protocol had been removed.
+                                    //   V1 protocol was later added but SN was never added for V1.  
+                                    guiDeviceSnList[getSnIdx] = "Connect to Update";
+                                    guiNumDevicesFound++;
+            
+                                    if( guiNumDevicesFound == 1 )
+                                    {
+                                        // Save the index just in case this is the only one found...
+                                        firstFoundIdx = getSnIdx;
+                                    }
+                                        
+                                    if( bPrivacyViewed == true )
+                                    {
+                                        var outText = GetLangString("Found") + " " + guiNumDevicesFound + " ";
+                                        if( guiNumDevicesFound == 1 )
+                                        {
+                                            outText += GetLangString("CelFiDevice");
+                                        }
+                                        else
+                                        {
+                                            outText += GetLangString("CelFiDevices");
+                                        }
+    
+                                        document.getElementById("searchMessageBox").innerHTML = outText;
+                                        UpdateStatusLine( outText );
+                                    }
+                                }
+                                
+                                // Disconnect from BT...
+                                DisconnectBluetoothDevice();
+                                getSnState = 0;
+                                getSnIdx++;
+                            }
+                            else
+                            {
+                                GetBoardConfigAntControl();   // Get the board config to see if cable box, bit 14 set, or not. Also check for G32 type of antenna control.
+                                getSnState = 3;
+                            }
+                        }
+                        else
+                        {
+                            if( !(getSnLoopCounter % 12) )
+                            {
+                                // Try sending again...every 12/24/36 counts
+                                msgRxLastCmd = NXTY_INIT;   // Clear any pending msg.
+                                getSnState = 1;
+                            }
                         }
                     }
                     break;
@@ -1660,94 +2344,247 @@ function GetDeviceSerialNumbersLoop()
                 // Wait until Board Config has been returned and then get SN if using this device...
                 case 3:
                 {
-                
-                    if( bNxtySuperMsgRsp == true )
+                    if( (icdBtList[getSnIdx] & BT_ICD_TYPE_SKAL) == BT_ICD_TYPE_SKAL)
                     {
-                        if( iNxtySuperMsgRspStatus == NXTY_SUPER_MSG_STATUS_SUCCESS )
-                        {                    
-                            boardCfgList[getSnIdx] = nxtyRxStatusBoardConfig;
-                            
-                            if( ((boardCfgList[getSnIdx] & BOARD_CFG_CABLE_BOX_BIT) == BOARD_CFG_USE_THIS_DEVICE)   ||
-                                (bWaveTest == true)   )                                                                     // For test we don't care about type.
+                        // Skal: Just connected to a Skal...Get GO SN, GO CNX status and Skal SN...
+                        if( guiDeviceSubSnList[getSnIdx] == "None" )
+                        {
+                            PrintLog(1, "BT: Skal: Get GO SN...");
+                            guiDeviceSubSnList[getSnIdx] = "Req";
+                            var u8TempBuff  = new Uint8Array(2);
+                            u8TempBuff[0] = NXTY_AB_READ_DATA_GO_SN;
+                            nxty.SendNxtyMsg(NXTY_AB_READ_DATA_REQ, u8TempBuff, 1);
+                        }
+                        else if( guiDeviceSubSnList[getSnIdx] == "Req" )
+                        {
+                            if( msgRxLastCmd != NXTY_WAITING_FOR_RSP )
                             {
-                                // Get the SN since this device meets our needs...
-                                GetNxtySuperMsgParamSelect( NXTY_SEL_PARAM_REG_SN_MSD_TYPE, NXTY_SEL_PARAM_REG_SN_LSD_TYPE );
+                                if( msgRxLastCmd == NXTY_AB_READ_DATA_RSP)
+                                {
+                                    guiDeviceSubSnList[getSnIdx] = "";
+                                    for( var i = 0; i < 6; i++ )
+                                    {
+                                        guiDeviceSubSnList[getSnIdx] += U8ToHexText(u8RxBuff[5+i]);
+                                    }
+                                }
+                                else
+                                {
+                                    guiDeviceSubSnList[getSnIdx] = "Unknown";
+                                }
+
+                                PrintLog(1, "BT: Skal: Get GO Cnx Status...");
+                                guiDeviceSubCnxList[getSnIdx] = "Req";
+                                nxty.SendNxtyMsg(NXTY_AB_GET_GO_CNX_STAT_REQ, null, 0);
+                            }
+                        }
+                        else if( guiDeviceSubCnxList[getSnIdx] == "Req" )
+                        {
+                            if( msgRxLastCmd != NXTY_WAITING_FOR_RSP )
+                            {
+                                if( msgRxLastCmd == NXTY_AB_GET_GO_CNX_STAT_RSP)
+                                {
+                                    if( u8RxBuff[4] == 0x01 )       // u8RxBuff[4] can return 0, 1 or 0xbb for babbling.
+                                    {
+                                        guiDeviceSubCnxList[getSnIdx] = "Cnx";
+                                    }
+                                    else
+                                    {
+                                        guiDeviceSubCnxList[getSnIdx] = "DCnx";
+                                    }
+                                }
+                                else
+                                {
+                                    guiDeviceSubCnxList[getSnIdx] = "Unknown";
+                                }
+                        
+                                var u8TempBuff  = new Uint8Array(2);
+                                u8TempBuff[0] = NXTY_AB_READ_DATA_SKAL_MAC;
+                                nxty.SendNxtyMsg(NXTY_AB_READ_DATA_REQ, u8TempBuff, 1);
                                 getSnState = 4;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Non Skal:
+                        if( bNxtySuperMsgRsp == true )
+                        {
+                            if( iNxtySuperMsgRspStatus == NXTY_SUPER_MSG_STATUS_SUCCESS )
+                            {                    
+                                boardCfgList[getSnIdx] = nxtyRxStatusBoardConfig;
+                                
+                                if( (boardCfgList[getSnIdx] & BOARD_CFG_CABLE_BOX_BIT) == BOARD_CFG_USE_THIS_DEVICE )
+                                {
+                                    if( boardCfgList[getSnIdx] & IM_A_1BOX_NU_MASK )
+                                    {
+                                        if( bSkalAntControlFlag == false )
+                                        {
+                                            guiDeviceTypeList[getSnIdx] = "1Box";         // An array of device types, "Antenna", "2BoxNu", "2BoxCu", "1Box", "Cable"  (Antenna for Skal)
+                                        }
+                                        else
+                                        {
+                                            // 1box with Antenna control for Skal.
+                                            guiDeviceTypeList[getSnIdx] = "1BoxA";        // An array of device types, "Antenna", "2BoxNu", "2BoxCu", "1Box", "Cable"  (Antenna for Skal)
+                                        }
+                                    }
+                                    else if(boardCfgList[getSnIdx] & IM_A_CU_MASK)
+                                    {
+                                        guiDeviceTypeList[getSnIdx] = "2BoxCu";         // An array of device types, "Antenna", "2BoxNu", "2BoxCu", "1Box", "Cable"  (Antenna for Skal)
+                                    }
+                                    else
+                                    {
+                                        guiDeviceTypeList[getSnIdx] = "2BoxNu";         // An array of device types, "Antenna", "2BoxNu", "2BoxCu", "1Box", "Cable"  (Antenna for Skal)
+                                    }
+
+                                    // Get the SN since this device meets our needs...
+                                    GetNxtySuperMsgParamSelect( NXTY_SEL_PARAM_REG_SN_MSD_TYPE, NXTY_SEL_PARAM_REG_SN_LSD_TYPE );
+                                    getSnState = 4;
+                                }
+                                else
+                                {
+                                    // Disconnect from BT...
+                                    guiDeviceTypeList[getSnIdx] = "Cable";         // An array of device types, "Antenna", "2BoxNu", "2BoxCu", "1Box", "Cable"  (Antenna for Skal)
+                                    DisconnectBluetoothDevice();
+                                    getSnState = 0;
+                                    getSnIdx++;
+                                }
                             }
                             else
                             {
-                                // Disconnect from BT...
+                                // Do not retry since unit may be marginally out of range...
                                 DisconnectBluetoothDevice();
                                 getSnState = 0;
                                 getSnIdx++;
                             }
+                            
                         }
-                        else
-                        {
-                            // Do not retry since unit may be marginally out of range...
-                            DisconnectBluetoothDevice();
-                            getSnState = 0;
-                            getSnIdx++;
-                        }
-                        
-                    }
-    
+                    }    
                     break;
                 }
                 
                 // Wait until SN has been returned and then disconnect...
                 case 4:
                 {
-                    if( bNxtySuperMsgRsp == true )
+                    var tempSn = "";
+                    if( (icdBtList[getSnIdx] & BT_ICD_TYPE_SKAL) == BT_ICD_TYPE_SKAL)
                     {
-                        if( iNxtySuperMsgRspStatus == NXTY_SUPER_MSG_STATUS_SUCCESS )
-                        {                    
-                            var tempSn = "";
+                        if( msgRxLastCmd != NXTY_WAITING_FOR_RSP )
+                        {
+                            var myMac = "";
                             for( i = 0; i < 6; i++ )
                             {
-                                if( i < 2 )
+                                if( i == 0)
                                 {
-                                    tempSn += U8ToHexText(u8RxBuff[9+i]);
+                                    myMac = U8ToHexText(u8RxBuff[5+i]);
                                 }
                                 else
                                 {
-                                    tempSn += U8ToHexText(u8RxBuff[12+i]);    // [14] but i is already 2 so 14-2=12
+                                    myMac += (":" + U8ToHexText(u8RxBuff[5+i]) );
                                 }
                             }
-        
-                            guiDeviceList[getSnIdx] = "SN:" + tempSn;
-                            numDevFound++;
-        
-                            if( numDevFound == 1 )
-                            {
-                                // Save the index just in case this is the only one found...
-                                firstFoundIdx = getSnIdx;
-                            }
-                                    
-                            if( bPrivacyViewed == true )
-                            {
-                                var outText = "Found " + numDevFound + " ";
-                                if( numDevFound == 1 )
-                                {
-                                    outText += "CelFiDevice";
-                                }
-                                else
-                                {
-                                    outText += "CelFiDevices";
-                                }
+
+                        
+                        
+                        
+                            // Calculate the Skal SN based on the MAC address...
+                            // Per LB email 1/29/18: For Skal the serial number is 60112764928 + Bottom-6-digits-of-MAC-address-converted-to-a-decimal-number
+                            //   Since D2C003 = 13811715
+                            //   For your board the SN is 60112764928 +13811715 = 60126576643
+                            // Per LB email 1/30/18:  Add checksum character to the end.
+                            //   Sorry forgot about the checksum digit (the number I gave you before only had 11 digits):
+                            //   The SN for your board is:  601265766436
+                            // myMac = guiDeviceMacAddrList[getSnIdx];   jdo: does not work on IOS since IOS MAC is mangled 
+                            skalBtMacAddrList[getSnIdx] = myMac;
+                            var myTemp = 60112764928 + parseInt("0x" + myMac.substring(9,11) + myMac.substring(12,14) + myMac.substring(15,17));
+                            tempSn = myTemp.toString();
                             
-                                document.getElementById("searchMessageBox").innerHTML = outText;
-                                UpdateStatusLine( outText );
+                            // Calculate the checksum on the 11 characters...
+                            var sum = 0;
+                            for( i = 0; i < tempSn.length; i++ )
+                            {
+                                if( (i & 1) == 0 )
+                                {
+                                    sum += (3 * (tempSn[i] - '0'));
+                                }
+                                else
+                                {
+                                    sum += (tempSn[i] - '0');
+                                }
                             }
-                        }    
+                            
+                            var checkSum = 10 - (sum % 10);
+                            if (checkSum == 10)
+                            {
+                                checkSum = 0;
+                            }
     
+                            tempSn += checkSum;
+                            PrintLog(1, "BT: Skal: Calculate Skal SN from BT MAC address. BT MAC=" + myMac + " SN=" + tempSn );
+                        }
+                        
+                    }
+                    else
+                    {
+                        if( bNxtySuperMsgRsp == true )
+                        {
+                            if( iNxtySuperMsgRspStatus == NXTY_SUPER_MSG_STATUS_SUCCESS )
+                            {                    
+                                for( i = 0; i < 6; i++ )
+                                {
+                                    if( i < 2 )
+                                    {
+                                        tempSn += U8ToHexText(u8RxBuff[9+i]);
+                                    }
+                                    else
+                                    {
+                                        tempSn += U8ToHexText(u8RxBuff[12+i]);    // [14] but i is already 2 so 14-2=12
+                                    }
+                                }
+                            }
+                        }
+                    }
+                     
+                    if( tempSn.length )
+                    {
+                        guiDeviceSnList[getSnIdx] = "SN:" + tempSn;
+                        guiNumDevicesFound++;
     
-                        // Disconnect from BT...
-                        DisconnectBluetoothDevice();
+                        if( guiNumDevicesFound == 1 )
+                        {
+                            // Save the index just in case this is the only one found...
+                            firstFoundIdx = getSnIdx;
+                        }
+                                
+                        if( bPrivacyViewed == true )
+                        {
+                            var outText = GetLangString("Found") + " " + guiNumDevicesFound + " ";
+                            if( guiNumDevicesFound == 1 )
+                            {
+                                outText += GetLangString("CelFiDevice");  // Found 1 Cel-Fi device...
+                            }
+                            else
+                            {
+                                outText += GetLangString("CelFiDevices");
+                            }
+                        
+                            var myBox = document.getElementById("searchMessageBox");
+                            if(myBox != null) 
+                            { 
+                                document.getElementById("searchMessageBox").innerHTML = outText;                            
+                            }
+
+                            UpdateStatusLine( outText );
+                        }
+
+
+                        if( guiDeviceMacAddrList.length > 1 )
+                        {
+                            // Disconnect from BT if more than 1 in list, i.e. favorite has only 1...
+                            DisconnectBluetoothDevice();
+                        }
                         getSnState = 0;
                         getSnIdx++;
-                    }
-    
+                    }    
                     break;
                 }
                 
@@ -1758,14 +2595,38 @@ function GetDeviceSerialNumbersLoop()
         getSnLoopCounter++;
 
         // Safety exit...
-        if( ((bBtClosed == true) && (getSnLoopCounter > 10)) ||          // No sense to wait around if BT errors out. 
-             (getSnLoopCounter > 40) )                                  // Never go more than 40
+        if( ((bBtTryingToCnx == false) && (getSnLoopCounter > 10))   ||             // No sense to wait around if BT errors out.
+            (SouthBoundCnxErrorCount > 12)                           ||             // Make sure connection doesn't spew TCP slip.
+            (getSnLoopCounter > 40) )                                               // Never go more than 40, about 6 seconds
         {
-            if( isSouthBoundIfCnx )
+            
+            if( (bBtTryingToCnx == false) && (getSnLoopCounter > 10) )
+            {
+                PrintLog(1, "BT: GetDeviceSerialNumbersLoop() Did not cnx successfully. (bBtTryingToCnx == false and getSnLoopCounter > 10)");
+            }
+            else if(SouthBoundCnxErrorCount > 12)
+            {
+                PrintLog(1, "BT: GetDeviceSerialNumbersLoop(): " + guiDeviceMacAddrList[getSnIdx] + " Connected but babbling so disconnect (SouthBoundCnxErrorCount > 12)");
+                babblingMacsList.push(guiDeviceMacAddrList[getSnIdx]);
+                window.localStorage.setItem( BABBLING_MAC_ID, JSON.stringify(babblingMacsList) );
+                PrintLog(1, "BT: Babbling MAC list:" + babblingMacsList );
+                SouthBoundCnxErrorCount = 0;
+            }
+            else
+            {
+                PrintLog(1, "BT: GetDeviceSerialNumbersLoop() Timed out after 6 sec so disconnect.");
+            }
+
+
+            if( bBtTryingToCnx || isSouthBoundIfCnx )
             {
                 DisconnectBluetoothDevice();
             }
-
+//            else
+//            {
+//                bBtTryingToCnx     = false;
+//            }
+            
             getSnState = 0;
             getSnIdx++;
         }
@@ -1776,82 +2637,107 @@ function GetDeviceSerialNumbersLoop()
     }
     else
     {
-//        StopWaitPopUpMsg();
-        SpinnerStop();  // jdo added to stop spinner
+        StopWaitPopUpMsg();
 
-        PrintLog(1, "guiDeviceAddrList      = " + JSON.stringify(guiDeviceAddrList) ); // An array of device BT addresses to select.
+        var tempIcdBtList  = icdBtList.slice(0);
+        var tempIcdDevList = icdDeviceList.slice(0);
+        var tempBoardCfgList = boardCfgList.slice(0);
+        PrintLog(1, "guiDeviceMacAddrList   = " + JSON.stringify(guiDeviceMacAddrList) ); // An array of device BT addresses to select.
+        PrintLog(1, "icdBtList              = " + JSON.stringify(tempIcdBtList, stringifyReplaceToHex) );     // An array of BT ICD versions.
         PrintLog(1, "guiDeviceRssiList      = " + JSON.stringify(guiDeviceRssiList) ); // An array of RSSI values.
-        PrintLog(1, "guiDeviceList          = " + JSON.stringify(guiDeviceList) );     // An array of Serial Numbers.
-        PrintLog(1, "icdDeviceList          = " + JSON.stringify(icdDeviceList, stringifyReplaceToHex) );     // An array of ICD versions.
-        PrintLog(1, "boardCfgList           = " + JSON.stringify(boardCfgList, stringifyReplaceToHex) + " if bit 14 set, 0x4000, then cable box"  );
-        PrintLog(1, "Number devices found   = " + numDevFound );
+        PrintLog(1, "guiDeviceSnList        = " + JSON.stringify(guiDeviceSnList) );     // An array of Serial Numbers.
+        PrintLog(1, "guiDeviceTypeList      = " + JSON.stringify(guiDeviceTypeList) ); // "Antenna", "2BoxNu", "2BoxCu", "1Box", "Cable"  (Antenna for Skal)
+        PrintLog(1, "guiDeviceSubSnList     = " + JSON.stringify(guiDeviceSubSnList) ); 
+        PrintLog(1, "guiDeviceSubCnxList    = " + JSON.stringify(guiDeviceSubCnxList) );
+        PrintLog(1, "icdDeviceList          = " + JSON.stringify(tempIcdDevList, stringifyReplaceToHex) );     // An array of ICD versions.
+        PrintLog(1, "boardCfgList           = " + JSON.stringify(tempBoardCfgList, stringifyReplaceToHex) + " if bit 14 set, 0x4000, then cable box"  );
+        PrintLog(1, "skalBtMacAddrList      = " + JSON.stringify(skalBtMacAddrList) );
         
+        PrintLog(1, "Number non-cable found = " + guiNumDevicesFound );
         
-
-        if( isSouthBoundIfCnx )
+        if( isSouthBoundIfCnx && (guiNumDevicesFound > 1) )
         {
             DisconnectBluetoothDevice();
+            isSouthBoundIfCnx = false;
+            myLastBtAddress   = null;             // Make sure no memory of previous connections.
         }
-
-        // Indicate that we are done...
-        isSouthBoundIfCnx      = false;
-
-        // Bug 1518.   If not able to get SN from list of MAC addresses then show error...
-        if( numDevFound >= 1 )
-        {
-            var outText = "";
         
-            if( boardCfgList[firstFoundIdx] & BOARD_CFG_CABLE_BOX_BIT )
+        
+        // Bug 1518.   If not able to get SN from list of MAC addresses then show error...
+        var bRangeIssue = false; 
+        if( guiNumDevicesFound == 0 )
+        {
+            if( uBtAutoTryCount < 3 )
             {
-                // Quatra type found...
-                if( boardCfgList[firstFoundIdx] & IM_A_CU_MASK )
-                {
-                    outText =  "Q-CU: ";
-                }
-                else
-                {
-                    outText =  "Q-NU: ";
-                }
-                outText += guiDeviceList[firstFoundIdx];
-                UpdateStatusLine( outText  );
+                uBtAutoTryCount++;
+                PrintLog(1, "BT: Retry to find BT devices:  Try Count=" + uBtAutoTryCount );
+                
+                RestartSouthBoundIf(true, false);   // Restart clean without deleting MAC babbling list....
             }
             else
             {
-                if( boardCfgList[firstFoundIdx] & IM_A_CU_MASK )
+                uBtAutoTryCount = 0;
+                bRangeIssue = true;
+            }
+        }
+        else if( guiNumDevicesFound == 1 )
+        {
+            deviceFoundUIFlag = true;   // Keep the popup, "Can't find a booster" from showing up after 2 minutes
+            
+/*
+ 
+ No, allow user to select an unconnected Skal so that the Skal can rescan and hopefully find a GO.
+ 
+            // If the 1 device found is a Skal then it must have a valid GO pairing, i.e. guiDeviceSubCnxList[] must be "Cnx".
+            if( (guiDeviceTypeList[firstFoundIdx] == "Antenna")  && (guiDeviceSubCnxList[firstFoundIdx] != "Cnx") )
+            {
+                bRangeIssue = true;
+                PrintLog(1, "Skal:  Single device found which is a Skal but it is not paired correctly so do not connect." );
+            }
+*/
+            
+            
+            if( bRangeIssue == false )
+            {
+                // If the 1 device found is a Skal and it does not have a valid GO pairing, i.e. guiDeviceSubCnxList[] not "Cnx",
+                // then allow user to view and select.
+                if( (guiDeviceTypeList[firstFoundIdx] == "Antenna")  && (guiDeviceSubCnxList[firstFoundIdx] != "Cnx") )
                 {
-                    outText =  "CU: ";
+                    PrintLog(1, "Skal:  Single device found which is a Skal but it is not connected to a GO so show user and allow to connect." );
+                    guiDeviceFlag = true;   // Show popup with single Antenna device.
                 }
                 else
                 {
-                    outText =  "NU: ";
-                }
-                outText += guiDeviceList[firstFoundIdx];
-                UpdateStatusLine( outText  );
-            }
-
-            PrintLog(1, "BT: firstFoundIdx=" + firstFoundIdx + "  " + outText );
+                    guiDeviceFlag   = false;
+                    btCnxIdIdx      = firstFoundIdx;
+                    nxtyRxStatusIcd = icdDeviceList[btCnxIdIdx]; 
+                    myLastBtAddress = guiDeviceMacAddrList[btCnxIdIdx];
+                    if( isSouthBoundIfCnx == false )
+                    {
+                        ConnectBluetoothDevice(guiDeviceMacAddrList[btCnxIdIdx]);
+                    }
+                    isSouthBoundIfListDone = true;      // Main app loop must be placed on hold until true.
+                    bMonitorBt = true;                  // Start monitoring the BT connection...
                     
-            guiDeviceFlag   = false;
-            myLastBtAddress = guiDeviceAddrList[firstFoundIdx];
-            ConnectBluetoothDevice(guiDeviceAddrList[firstFoundIdx]);
-            isSouthBoundIfListDone = true;      // Main app loop must be placed on hold until true.
-            
-            
-            
-            // Start the saftey check...
-            if( BluetoothCnxTimer == null )
-            {
-                BluetoothCnxTimer = setTimeout(BluetoothLoop, 5000);
+                    
+                    // Start the saftey check...
+                    if( BluetoothCnxTimer == null )
+                    {
+                        BluetoothCnxTimer = setTimeout(BluetoothLoop, 10000);
+                    }
+                }
             }
         }
-        else
+        else if( guiNumDevicesFound > 1 )
         {
-            navigator.notification.confirm(
-                'Unable to retrieve data from the booster. Please move closer.',    // message
-                    HandleBtConfirmation,                   // callback to invoke with index of button pressed
-                    'Bluetooth Range Issue',                // title
-                    ['Retry'] );                               // buttonLabels
+            guiDeviceFlag = true;
+            deviceFoundUIFlag = true;   // Keep the popup, "Can't find a booster" from showing up after 2 minutes
+        }
         
+        if( bRangeIssue )
+        {
+            util.showNoDeviceFoundErrorPopup(true);
+            //ShowAlertPopUpMsg( GetLangString("BluetoothRangeIssue"), GetLangString("BluetoothRangeIssueMsg") );
             guiDeviceFlag = false;
         }
 
@@ -1864,14 +2750,14 @@ function GetDeviceSerialNumbersLoop()
 
 // CnxAndIdentifySouthBoundDevice........................................................................
 var cnxIdState       = 0;
-var cnxIdIdx         = -1;
+var btCnxIdIdx       = -1;                          // Index into guiDeviceMacAddrList[] for final BT connection.  Used globally.
 var cnxIdLoopCounter = 0;
 function CnxAndIdentifySouthBoundDevice(devIdx)
 {
     nxtyRxStatusIcd = icdDeviceList[devIdx];    
-    PrintLog(1, "BT: CnxAndIdentifySouthBoundDevice("+ devIdx + ") = " + guiDeviceList[devIdx] + " ICD ver=0x" + nxtyRxStatusIcd.toString(16) );
+    PrintLog(1, "BT: CnxAndIdentifySouthBoundDevice("+ devIdx + ") = " + guiDeviceSnList[devIdx] + " ICD ver=0x" + nxtyRxStatusIcd.toString(16) );
     
-    if( devIdx == cnxIdIdx )
+    if( (isSouthBoundIfCnx == true) && (devIdx == btCnxIdIdx) )
     {
         // If we are already connected to the correct device then flash...
         FindMyCelfi();
@@ -1880,7 +2766,7 @@ function CnxAndIdentifySouthBoundDevice(devIdx)
     {
         // Start the disconnect and reconnect loop...
         cnxIdState       = 0;
-        cnxIdIdx         = devIdx;
+        btCnxIdIdx       = devIdx;
         cnxIdLoopCounter = 0;
         setTimeout( CnxId, 100 );
 
@@ -1897,7 +2783,7 @@ function CnxAndIdentifySouthBoundDevice(devIdx)
 // CnxId........................................................................
 function CnxId()
 {
-    PrintLog(10, "BT: CnxId()... idx=" + cnxIdIdx + " state=" + cnxIdState + " Counter=" + cnxIdLoopCounter );
+    PrintLog(10, "BT: CnxId()... idx=" + btCnxIdIdx + " state=" + cnxIdState + " Counter=" + cnxIdLoopCounter );
 
     switch(cnxIdState)
     {
@@ -1907,22 +2793,34 @@ function CnxId()
             if( isSouthBoundIfCnx == true )
             {
                 DisconnectBluetoothDevice();
+                cnxIdState = 1;
+            }
+            else
+            {
+                cnxIdState = 2;
             }
 
-            cnxIdState = 1;
             break;
         }
 
-
-        // Connect to BT device
         case 1:
         {
             if( isSouthBoundIfCnx == false )
             {
-                nxtyRxBtCnx = 0;
-                ConnectBluetoothDevice(guiDeviceAddrList[cnxIdIdx]);
-                BluetoothCnxTimer = setTimeout(BluetoothLoop, 5000);
                 cnxIdState = 2;
+            }
+            break;
+        }
+
+        // Connect to BT device
+        case 2:
+        {
+            if( isSouthBoundIfCnx == false )
+            {
+                nxtyRxBtCnx = 0;
+                ConnectBluetoothDevice(guiDeviceMacAddrList[btCnxIdIdx]);
+//                BluetoothCnxTimer = setTimeout(BluetoothLoop, 10000);         // Moved to below.
+                cnxIdState = 3;
             }
             break;
         }
@@ -1930,9 +2828,9 @@ function CnxId()
 
         // Bug 1581: Delay FindMyCelfi().
         // Tx cnx msg is sent by BT chip to PIC when connected so PIC will toss any messages sent immediately from the Wave App.
-        case 2:
         case 3:
         case 4:
+        case 5:
         {
             if( isSouthBoundIfCnx )
             {
@@ -1941,7 +2839,15 @@ function CnxId()
                 if( nxtyRxBtCnx == 1 )
                 {
                     // Jump immediately...
-                    cnxIdState = 5;
+                    cnxIdState = 6;
+                }
+            }
+            else
+            {
+                if( bBtTryingToCnx == false )
+                {
+                    // Auto retry to connect...
+                    cnxIdState = 2;
                 }
             }
             break;
@@ -1949,9 +2855,11 @@ function CnxId()
 
 
         // Wait until device connected then send flash command...
-        case 5:
+        case 6:
         {
             FindMyCelfi();
+            BluetoothCnxTimer = setTimeout(BluetoothLoop, 10000);       // Only start loop if connected.
+            bMonitorBt = true;                  // Start monitoring the BT connection...
             return;             // Exit stage left
             break;
         }
@@ -1962,7 +2870,7 @@ function CnxId()
     cnxIdLoopCounter++;
 
     // Safety exit...
-    if( cnxIdLoopCounter < 40 )
+    if( cnxIdLoopCounter < 50 )
     {
         // Come back in 250 mS
         setTimeout( CnxId, 250 );
@@ -1970,17 +2878,52 @@ function CnxId()
 }
 
 
-// HandleBtConfirmation.......................................................................................
-function HandleBtConfirmation(buttonIndex) 
+
+                                            
+
+
+// HandlePhoneBackground........................................................................
+function HandlePhoneBackground()
 {
-    // buttonIndex = 0 if dialog dismissed, i.e. back button pressed.
-    // buttonIndex = 1 if 'Retry'
-    if( buttonIndex == 1 )
+    PrintLog(1, "Phone sent to background, disconnect BT after 5 minutes to save power.  " + Date());
+    bPhoneInBackground = true;
+    
+    if( ShutDownBluetoothTimer == null )
     {
-        SpinnerStart( "", "Searching harder for Cel-Fi Devices..." );
-        RestartSouthBoundIf(true);
+        ShutDownBluetoothTimer = setTimeout(ShutdownBluetoothInBackground, 5 * 60 * 1000);  // Turn off BT in 5 minutes...
+    }
+    
+}
+
+// HandlePhoneForeground........................................................................
+function HandlePhoneForeground()
+{
+    PrintLog(1, "BT: Phone returned from background.  " + Date());
+    bPhoneInBackground = false;
+
+    if( ShutDownBluetoothTimer != null )
+    {
+        clearTimeout(ShutDownBluetoothTimer);
+        ShutDownBluetoothTimer = null;   
+    }
+    
+    if(bBtCnxWhenBackground)
+    {
+        RestartSouthBoundIf(false, false);     // Restart using last address.
+        bBtCnxWhenBackground = false;
     }
 }
 
+// ShutdownBluetoothInBackground........................................................................
+function ShutdownBluetoothInBackground()
+{
+    PrintLog(1, "BT: Phone in background for 5 minutes, disconnect BT to save power.  " + Date());
+    ShutDownBluetoothTimer = null;   
 
+    if( isSouthBoundIfCnx )
+    {
+        DisconnectAndStopSouthBoundIf();
+        bBtCnxWhenBackground = true;
+    }
+}
 
