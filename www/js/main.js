@@ -46,6 +46,8 @@ var bCnxToCu                = true;             // Set to true if connected loca
 var bCnxToOneBoxNu          = false;            // Set to true if connected to a 1-Box NU, all UART redirects are disabled.
 var bWaveTest               = true;            // Set to false for normal WaveTools or true for Bluetooth test only.                
 
+var bPhoneInBackground          = false;    // Set to true if phone is in background.
+
 // Determine which messages get sent to the console.  1 normal, 10 verbose.
 // Level  1: Flow and errors.
 // Level  2: Raw bluetooth Tx data

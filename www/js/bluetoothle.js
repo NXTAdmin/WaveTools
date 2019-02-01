@@ -2885,6 +2885,8 @@ function CnxId()
 // HandlePhoneBackground........................................................................
 function HandlePhoneBackground()
 {
+/*
+Not for WaveTools
     PrintLog(1, "Phone sent to background, disconnect BT after 5 minutes to save power.  " + Date());
     bPhoneInBackground = true;
     
@@ -2892,12 +2894,13 @@ function HandlePhoneBackground()
     {
         ShutDownBluetoothTimer = setTimeout(ShutdownBluetoothInBackground, 5 * 60 * 1000);  // Turn off BT in 5 minutes...
     }
-    
+*/    
 }
 
 // HandlePhoneForeground........................................................................
 function HandlePhoneForeground()
 {
+/*
     PrintLog(1, "BT: Phone returned from background.  " + Date());
     bPhoneInBackground = false;
 
@@ -2912,6 +2915,7 @@ function HandlePhoneForeground()
         RestartSouthBoundIf(false, false);     // Restart using last address.
         bBtCnxWhenBackground = false;
     }
+*/    
 }
 
 // ShutdownBluetoothInBackground........................................................................
