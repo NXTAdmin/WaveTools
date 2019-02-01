@@ -215,14 +215,14 @@ function OpenSouthBoundIf(bFirstTime)
 {
     PrintLog(1, "BT: Starting bluetooth");
 
-    // WAVEAPP-544: See if we have a cached MAC address for auto connect.
-    if( IsAnyDeviceRemembered() )
-    {
-        bBtTryFavoriteMac  = true;
-        guiFavoriteMacAddr = window.localStorage.getItem( "guiFavoriteMacAddr_ID" );
-        guiFavoriteIcd     = parseInt( window.localStorage.getItem( "guiFavoriteIcd_ID" ) );
-        guiFavoriteRssi    = parseInt( window.localStorage.getItem( "guiFavoriteRssi_ID" ) );
-    }
+    // WAVEAPP-544: See if we have a cached MAC address for auto connect. (Wavetools no caching)
+//    if( IsAnyDeviceRemembered() )
+//    {
+//        bBtTryFavoriteMac  = true;
+//        guiFavoriteMacAddr = window.localStorage.getItem( "guiFavoriteMacAddr_ID" );
+//        guiFavoriteIcd     = parseInt( window.localStorage.getItem( "guiFavoriteIcd_ID" ) );
+//        guiFavoriteRssi    = parseInt( window.localStorage.getItem( "guiFavoriteRssi_ID" ) );
+//    }
     
     if( bFirstTime )
     {
