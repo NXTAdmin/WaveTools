@@ -213,6 +213,7 @@ var u8IcdRxCountTotal   = 0;
 // Added for WaveTools...
 var guiDisableBtScanFlag    = false;
 var bPrivacyViewed          = true;
+var enableLocationPerDialog = false;  // will be TRUE if the device is iOS or Android >= 6.0 version
 
 
 // OpenSouthBoundIf...................................................................................
@@ -380,6 +381,12 @@ function isConnectedCallback(obj)
 	        
 	        if( guiDisableBtScanFlag == false )
 	        {
+	        
+	           if( (window.device.platform == "Android" && parseInt(window.device.version, 10) >= 6 )
+               {
+                  enableLocationPerDialog = true;
+               }
+	        
 	            PrintLog(1, "BT: Privacy Policy accepted, scan for bluetooth devices..." );
                 // StartBluetoothScan();
                 if(enableLocationPerDialog) {
