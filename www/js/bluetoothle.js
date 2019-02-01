@@ -372,12 +372,12 @@ function isConnectedCallback(obj)
 {
     if(obj.isConnected)
     {
-        PrintLog(10, "BT: bluetooth cnx callback: Cnx" );
+        PrintLog(1, "BT: bluetooth cnx callback: Cnx" );
         uNoBtCount = 0;
 // jdo: only set if subscribed        UpdateBluetoothIcon( true );
 
-        // Check again in 15 seconds since we are connected...
-        BluetoothCnxTimer = setTimeout(BluetoothLoop, 15000);
+        // Check again in 10 seconds since we are connected...
+        BluetoothCnxTimer = setTimeout(BluetoothLoop, 10000);
 
         if( isBluetoothSubscribed == false )
         {
@@ -388,13 +388,13 @@ function isConnectedCallback(obj)
     }
     else
     {
-        PrintLog(10, "BT: bluetooth cnx callback: Not Cnx" );
+        PrintLog(1, "BT: bluetooth cnx callback: Not Cnx" );
         UpdateBluetoothIcon( false );
 
-        // Check again in 10 seconds...
+        // Check again in 5 seconds...
 		if( bPrivacyViewed == true )
 		{
-	        BluetoothCnxTimer = setTimeout(BluetoothLoop, 10000);
+	        BluetoothCnxTimer = setTimeout(BluetoothLoop, 5000);
 	        
 	        if( guiDisableBtScanFlag == false )
 	        {
@@ -444,7 +444,7 @@ function isConnectedCallback(obj)
                 }                
 	            
                 // Waveapp-760: General BT catch.  Inform after 30 seconds of no BT.
-                if( (bMonitorBt == true) && (guiCurrentMode != PROG_MODE_DOWNLOAD) && (guiPopupDisplayed == false) )
+                if( (bMonitorBt == true) /*&& (guiCurrentMode != PROG_MODE_DOWNLOAD) && (guiPopupDisplayed == false)*/ )
                 {
                     uNoBtCount++;
     	            if( uNoBtCount > 3 )
