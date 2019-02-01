@@ -1030,12 +1030,6 @@ function UpdateBluetoothIcon(cnx)
         isBluetoothSubscribed = false;
         u8ScanResults[0]      = 0;
   
-/*        
-        if( bSouthBoundSkalCnx )
-        {
-            document.getElementById("searchMessageBox").innerHTML = "Searching..."; // jdo debug  skal debug          
-        }
-*/        
         bSouthBoundSkalCnx    = false;
         bBtIcdVer2   = false;
     }
