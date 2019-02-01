@@ -379,7 +379,7 @@ function isConnectedCallback(obj)
     {
         PrintLog(1, "BT: bluetooth cnx callback: Cnx" );
         uNoBtCount = 0;
-// jdo: only set if subscribed        UpdateBluetoothIcon( true );
+        UpdateBluetoothIcon( true );
 
         // Check again in 10 seconds since we are connected...
         BluetoothCnxTimer = setTimeout(BluetoothLoop, 10000);
