@@ -215,6 +215,20 @@ var guiDisableBtScanFlag    = false;
 var bPrivacyViewed          = true;
 var enableLocationPerDialog = false;  // will be TRUE if the device is iOS or Android >= 6.0 version
 var guiDeviceFlag           = false;            // Flag:  true:  display device selection 
+var guiFavoriteMacAddr      = null;             // Stores MAC address of favorite device.  Set when user presses "Connect".
+var guiFavoriteIcd          = 0;
+var guiFavoriteRssi         = -99;
+var guiDeviceFlag           = false;            // Flag:  true:  display device selection 
+var guiNumDevicesFound      = 0;                // Number of eligible BT CelFi devices.
+var guiDeviceMacAddrList    = [];               // An array of device addresses to select. (Android: MAC, IOS: Mangled MAC)
+var guiDeviceRssiList       = [];               // An array of associated BT RSSI values...
+var guiDeviceSnList         = [];               // An array of Serial Numbers to display for user to select.
+var guiDeviceTypeList       = [];               // An array of device types, "Antenna", "2BoxNu", "2BoxCu", "1Box", "Cable"  (Antenna for Skal)
+var guiDeviceSubSnList      = [];               // An array of booster Serial Numbers associated with an antenna in guiDeviceSnList[] SN, index is one to one with guiDeviceSnList[].
+var guiDeviceSubCnxList     = [];               // An array of "CNX" devices, index is on to one with guiDeviceSnList[].
+var guiDeviceTempSubSnList  = [];               // An array of serial numvers associated with a specific Antenna SN.   This is re-populated with each call to ConnectDevice().
+var guiAntennaGetBoosterListFlag = false;       // true when a delay should be displayed. 
+var guiAntennaGotBoosterListFlag = false;       // true when guiDeviceTempSubSnList[] has been populated. 
 
 
 // OpenSouthBoundIf...................................................................................
