@@ -382,7 +382,7 @@ function isConnectedCallback(obj)
 	        if( guiDisableBtScanFlag == false )
 	        {
 	        
-	           if( (window.device.platform == "Android" && parseInt(window.device.version, 10) >= 6 )
+	           if( (window.device.platform == "Android") && (parseInt(window.device.version, 10) >= 6) )
                {
                   enableLocationPerDialog = true;
                }
