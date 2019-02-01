@@ -184,7 +184,7 @@ function WaitForFileSystemThenStartSouthboundIf()
     if(bfileOpenLogFileSuccess)
     {
         // Now that the file system is open, start SouthBound Interface...
-        OpenSouthBoundIf();
+        OpenSouthBoundIf(true);
     }
     else
     {

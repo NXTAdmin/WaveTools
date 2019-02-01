@@ -211,6 +211,7 @@ var u8IcdRxCountTotal   = 0;
 
 
 // Added for WaveTools...
+var Module = new Object;
 var guiDisableBtScanFlag    = false;
 var bPrivacyViewed          = true;
 var enableLocationPerDialog = false;  // will be TRUE if the device is iOS or Android >= 6.0 version
