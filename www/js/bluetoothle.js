@@ -945,6 +945,11 @@ function UpdateBluetoothIcon(cnx)
      }
      
      
+     
+     UpdateStatusLine( "SN: " + guiDeviceSnList[cnxIdx] );
+
+     
+     
      isSouthBoundIfCnx     = true;
  }
  else
@@ -971,6 +976,9 @@ function UpdateBluetoothIcon(cnx)
      isBluetoothSubscribed = false;
      u8ScanResults[0]      = 0;
      bBtIcdVer2   = false;
+     
+     UpdateStatusLine( "SN: " );
+
  }
 }
 
