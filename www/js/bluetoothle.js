@@ -915,6 +915,8 @@ function UpdateBluetoothIcon(cnx)
          
      }
 
+     var cnxIdx = guiDeviceMacAddrList.indexOf(btAddr);
+
      if( (icdBtList[cnxIdx] & BT_ICD_VER_2) == BT_ICD_VER_2)
      {
          PrintLog(1, "BT: Set bBtIcdVer2 and bUseThunkLayer to true: Tech data will use ID-Val pairs.  No PIC-ICD status message." );
