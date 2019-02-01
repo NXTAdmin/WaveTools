@@ -316,10 +316,10 @@ function HandleBtDisabledConfirmation(buttonIndex)
     if( buttonIndex == 0 )
     {
         // If they dismiss, then give it to them again....
-        ShowConfirmPopUpMsg( 'KEY_BLUETOOTH_REQUIRED',               // title
-           "", // "This app requires Bluetooth to be enabled.<br>Please activate Bluetooth from your system settings.",    // message text written by handler
-           HandleBtDisabledConfirmation,      // callback to invoke with index of button pressed
-           ['Ok'] );
+//        ShowConfirmPopUpMsg( 'KEY_BLUETOOTH_REQUIRED',               // title
+//           "", // "This app requires Bluetooth to be enabled.<br>Please activate Bluetooth from your system settings.",    // message text written by handler
+//           HandleBtDisabledConfirmation,      // callback to invoke with index of button pressed
+//           ['Ok'] );
     }
     else if( (buttonIndex == 1) || (buttonIndex == 2) )
     {
@@ -341,10 +341,11 @@ function CatchBluetoothDisabled()
     PrintLog(1, "BT: CatchBluetoothDisabled()" );
     isSouthBoundIfEnabled = false;
     isSouthBoundIfStarted = true;
-    ShowConfirmPopUpMsg( 'KEY_BLUETOOTH_REQUIRED',               // title
-            "This app requires Bluetooth to be enabled.<br>Please activate Bluetooth from your system settings.",    // message text written by handler, this text written to log.
-            HandleBtDisabledConfirmation,      // callback to invoke with index of button pressed
-            ['Ok'] );
+    showAlert("WaveTools", "This app requires Bluetooth to be enabled.<br>Please activate Bluetooth from your system settings.");
+//    ShowConfirmPopUpMsg( 'KEY_BLUETOOTH_REQUIRED',               // title
+//            "This app requires Bluetooth to be enabled.<br>Please activate Bluetooth from your system settings.",    // message text written by handler, this text written to log.
+//            HandleBtDisabledConfirmation,      // callback to invoke with index of button pressed
+//            ['Ok'] );
 }
 
 // BluetoothLoop...................................................................................
@@ -447,7 +448,8 @@ function isConnectedCallback(obj)
                     uNoBtCount++;
     	            if( uNoBtCount > 3 )
     	            {
-    	                ShowAlertPopUpMsg(GetLangString("BluetoothCnxLost"),  GetLangString("UnableToSyncError99") );
+    	                showAlert("WaveTools", "Bluetooth connection lost.");
+//    	                ShowAlertPopUpMsg(GetLangString("BluetoothCnxLost"),  GetLangString("UnableToSyncError99") );
     	                uNoBtCount = 0;
     	            }
                 }
@@ -2669,7 +2671,7 @@ function GetDeviceSerialNumbersLoop()
     }
     else
     {
-        StopWaitPopUpMsg();
+//        StopWaitPopUpMsg();
 
         var tempIcdBtList  = icdBtList.slice(0);
         var tempIcdDevList = icdDeviceList.slice(0);
