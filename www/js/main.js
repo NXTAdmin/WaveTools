@@ -34,7 +34,6 @@ var uMainLoopCounter        = 0;
 var MainLoopIntervalHandle  = null; 
 var isNetworkConnected      = null;
 var bGotUserInfoRspFromCloud    = false;
-var bPrivacyViewed          = true;
 var msgTimer                = null; 
 var szVersion               = "09.02.09";
 var szSuccess               = "";

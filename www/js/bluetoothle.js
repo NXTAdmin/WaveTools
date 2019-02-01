@@ -210,6 +210,11 @@ var u8ThunkRxCountTotal = 0;
 var u8IcdRxCountTotal   = 0;
 
 
+// Added for WaveTools...
+var guiDisableBtScanFlag    = false;
+var bPrivacyViewed          = true;
+
+
 // OpenSouthBoundIf...................................................................................
 function OpenSouthBoundIf(bFirstTime)
 {
@@ -395,7 +400,10 @@ function isConnectedCallback(obj)
                         {
                             PrintLog(1, "Location services not available, success callback but not success.");
                             guiDisableBtScanFlag = true;    // Disable the start of BT scanning...
-                            util.preLocationMessage();
+//                            util.preLocationMessage();
+                              showAlert("WaveTools", "Location services not available.");
+
+    
                         }
                     } 
 
@@ -403,7 +411,9 @@ function isConnectedCallback(obj)
                     {
                         PrintLog(1, "Location services not available, error callback.");
                         guiDisableBtScanFlag = true;    // Disable the start of BT scanning...
-                        util.preLocationMessage();
+//                        util.preLocationMessage();
+                        showAlert("WaveTools", "Location services not available.");
+                        
                     }
                 } else {
                     StartBluetoothScan();
@@ -2736,7 +2746,9 @@ function GetDeviceSerialNumbersLoop()
         
         if( bRangeIssue )
         {
-            util.showNoDeviceFoundErrorPopup(true);
+//            util.showNoDeviceFoundErrorPopup(true);
+            showAlert("WaveTools", "No device found.");
+            
             //ShowAlertPopUpMsg( GetLangString("BluetoothRangeIssue"), GetLangString("BluetoothRangeIssueMsg") );
             guiDeviceFlag = false;
         }
