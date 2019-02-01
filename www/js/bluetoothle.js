@@ -231,7 +231,7 @@ var guiDeviceTempSubSnList  = [];               // An array of serial numvers as
 var guiAntennaGetBoosterListFlag = false;       // true when a delay should be displayed. 
 var guiAntennaGotBoosterListFlag = false;       // true when guiDeviceTempSubSnList[] has been populated. 
 var bSkalAntControlFlag          = false;       // Read AntennaControl reg to see if G32 type GO.  false: If value is 0xDEADBABE then not G32.
-
+var deviceFoundUIFlag       = false;
 
 // OpenSouthBoundIf...................................................................................
 function OpenSouthBoundIf(bFirstTime)
@@ -2799,21 +2799,10 @@ function GetDeviceSerialNumbersLoop()
                 bRangeIssue = true;
             }
         }
-        else if( guiNumDevicesFound == 1 )
+        else if( guiNumDevicesFound >= 1 )
         {
             deviceFoundUIFlag = true;   // Keep the popup, "Can't find a booster" from showing up after 2 minutes
             
-/*
- 
- No, allow user to select an unconnected Skal so that the Skal can rescan and hopefully find a GO.
- 
-            // If the 1 device found is a Skal then it must have a valid GO pairing, i.e. guiDeviceSubCnxList[] must be "Cnx".
-            if( (guiDeviceTypeList[firstFoundIdx] == "Antenna")  && (guiDeviceSubCnxList[firstFoundIdx] != "Cnx") )
-            {
-                bRangeIssue = true;
-                PrintLog(1, "Skal:  Single device found which is a Skal but it is not paired correctly so do not connect." );
-            }
-*/
             
             
             if( bRangeIssue == false )
@@ -2847,11 +2836,11 @@ function GetDeviceSerialNumbersLoop()
                 }
             }
         }
-        else if( guiNumDevicesFound > 1 )
-        {
+//        else if( guiNumDevicesFound > 1 )
+//        {
 //            guiDeviceFlag = true;
-            deviceFoundUIFlag = true;   // Keep the popup, "Can't find a booster" from showing up after 2 minutes
-        }
+//            deviceFoundUIFlag = true;   // Keep the popup, "Can't find a booster" from showing up after 2 minutes
+//        }
         
         if( bRangeIssue )
         {
