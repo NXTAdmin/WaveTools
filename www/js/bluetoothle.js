@@ -294,6 +294,10 @@ function initializeSuccess(obj)
       {
           CatchBluetoothDisabled();
       }
+      
+      
+      Spinnerstop()
+      showAlert( obj.status, "Bluetooth Error" );
   }
 
   isSouthBoundIfStarted = true;
@@ -443,8 +447,10 @@ function isConnectedCallback(obj)
                     StartBluetoothScan();
                 }                
 	            
+                
+/*                
                 // Waveapp-760: General BT catch.  Inform after 30 seconds of no BT.
-                if( (bMonitorBt == true) /*&& (guiCurrentMode != PROG_MODE_DOWNLOAD) && (guiPopupDisplayed == false)*/ )
+                if( (bMonitorBt == true) )
                 {
                     uNoBtCount++;
     	            if( uNoBtCount > 3 )
@@ -454,6 +460,7 @@ function isConnectedCallback(obj)
     	                uNoBtCount = 0;
     	            }
                 }
+*/                
 
 	        }
 	        else
@@ -830,8 +837,8 @@ function startScanSuccess(obj)
   }
   else if (obj.status == "scanStarted")
   {
-    PrintLog(1, "BT: Scan was started successfully, stopping in 8 sec.");
-    scanTimer = setTimeout(scanTimeout, 8000);
+    PrintLog(1, "BT: Scan was started successfully, stopping in 4 sec.");
+    scanTimer = setTimeout(scanTimeout, 4000);
   }
   else
   {
@@ -2747,6 +2754,8 @@ function GetDeviceSerialNumbersLoop()
     else
     {
 //        StopWaitPopUpMsg();
+        SpinnerStop();  // jdo added to stop spinner
+
 
         var tempIcdBtList  = icdBtList.slice(0);
         var tempIcdDevList = icdDeviceList.slice(0);
