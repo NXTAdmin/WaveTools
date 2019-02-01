@@ -2440,7 +2440,7 @@ function GetDeviceSerialNumbersLoop()
                             }
                             else
                             {
-                                GetBoardConfigAntControl();   // Get the board config to see if cable box, bit 14 set, or not. Also check for G32 type of antenna control.
+                                GetBoardConfig();   // Get the board config to see if cable box, bit 14 set, or not. Also check for G32 type of antenna control.
                                 getSnState = 3;
                             }
                         }
