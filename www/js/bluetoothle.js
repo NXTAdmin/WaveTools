@@ -887,6 +887,84 @@ function stopScanError(obj)
 }
 
 
+//UpdateBluetoothIcon....................................................................................
+function UpdateBluetoothIcon(cnx)
+{
+ if(cnx)
+ {
+    
+     if( isSouthBoundIfCnx == false )
+     {
+         PrintLog(1, "BT: UpdateBluetoothIcon(): Set isSouthBoundIfCnx to true" );
+     }
+     
+     if( isSouthBoundIfListDone )
+     {
+         if( document.getElementById("bt_icon_id").innerHTML != szSbIfIconOn )
+         {
+             document.getElementById("bt_icon_id").innerHTML = szSbIfIconOn;
+         }
+         
+         if(bWaveTest)
+         {
+             if( document.getElementById("bt_main_id").innerHTML != szSbIfMainOn )
+             {
+                 document.getElementById("bt_main_id").innerHTML = szSbIfMainOn;
+             }
+         }
+         
+     }
+
+     if( (icdBtList[cnxIdx] & BT_ICD_VER_2) == BT_ICD_VER_2)
+     {
+         PrintLog(1, "BT: Set bBtIcdVer2 and bUseThunkLayer to true: Tech data will use ID-Val pairs.  No PIC-ICD status message." );
+         
+         bBtIcdVer2        = true;
+         bUseIdValTechData = true;
+         bUseThunkLayer    = true;
+         bRxThunkPending   = false;
+         Module._ReorderReset(); // reset the thunk counters.
+
+     }
+     else
+     {
+         PrintLog(1, "BT: Set bBtIcdVer2 and bUseThunkLayer to false: Tech data will use C-struct." );
+         bBtIcdVer2        = false;
+         bUseIdValTechData = false;
+         bUseThunkLayer    = false;
+     }
+     
+     
+     isSouthBoundIfCnx     = true;
+ }
+ else
+ {
+     if( isSouthBoundIfCnx == true )
+     {
+         PrintLog(1, "BT: UpdateBluetoothIcon(): Set isSouthBoundIfCnx to false" );
+     }
+     
+     if( document.getElementById("bt_icon_id").innerHTML != szSbIfIconOff )
+     {
+         document.getElementById("bt_icon_id").innerHTML = szSbIfIconOff;
+     }
+
+     if(bWaveTest)
+     {
+         if( document.getElementById("bt_main_id").innerHTML != szSbIfMainOff )
+         {
+             document.getElementById("bt_main_id").innerHTML = szSbIfMainOff;
+         }
+     }
+     
+     isSouthBoundIfCnx     = false;
+     isBluetoothSubscribed = false;
+     u8ScanResults[0]      = 0;
+     bBtIcdVer2   = false;
+ }
+}
+
+/*
 
 // UpdateBluetoothIcon....................................................................................
 function UpdateBluetoothIcon(cnx)
@@ -963,7 +1041,7 @@ function UpdateBluetoothIcon(cnx)
     }
 }
 
-
+*/
 
 // ConnectBluetoothDevice...................................................................................
 // Per plugin: Connect to a Bluetooth LE device. The Phonegap app should use a timer to limit the
