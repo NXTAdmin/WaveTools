@@ -60,7 +60,9 @@
     <gap:plugin name="cordova-plugin-dialogs" source="npm" />
 
     <!-- Third party plugins -->
-    <gap:plugin name="cordova-plugin-bluetoothle" source="npm" version="3.3.0" />
+    <gap:plugin spec="https://github.com/NXTAdmin/cordova-plugin-bluetoothle" source="git"/>     <!-- Based on version 4.4.4.  -->
+    <!-- <gap:plugin name="cordova-plugin-bluetoothle" source="npm" version="3.3.0" /> -->
+    
     <plugin name="cordova-plugin-insomnia"  source="npm" version="4.1.0" />             <!-- jdo: Added to lock screen from going to sleep during downloads.  -->
     <plugin name="cordova-plugin-geolocation"  source="npm" version="2.1.0" />          <!-- jdo: Added to find lat and long.   -->
     <plugin name="cordova-plugin-screen-orientation"  source="npm" version="1.4.2" />   <!--Plugin for maintaining orientation-->
