@@ -35,7 +35,13 @@ var MainLoopIntervalHandle  = null;
 var isNetworkConnected      = null;
 var bGotUserInfoRspFromCloud    = false;
 var msgTimer                = null; 
-var szVersion               = "09.02.09";
+var szVersion               = "00.02.10";
+
+//  01=2/1/19:  00.02.10:   Added thunk capability for Haywards.
+//
+//
+
+
 var szSuccess               = "";
 var retryObject             = null;
 var retryCount              = 0;

@@ -946,7 +946,7 @@ function UpdateBluetoothIcon(cnx)
      
      
      
-     UpdateStatusLine( "SN: " + guiDeviceSnList[cnxIdx] );
+     UpdateStatusLine( guiDeviceSnList[cnxIdx] );
 
      
      
