@@ -35,10 +35,10 @@ var MainLoopIntervalHandle  = null;
 var isNetworkConnected      = null;
 var bGotUserInfoRspFromCloud    = false;
 var msgTimer                = null; 
-var szVersion               = "00.02.10";
+var szVersion               = "00.02.11";
 
-//  01=2/1/19:  00.02.10:   Added thunk capability for Haywards.
-//
+//  2/1/19:  00.02.10:   Added thunk capability for Haywards.
+//  2/5/19:  00.02.11:   Added babbling detection.
 //
 
 

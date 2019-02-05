@@ -447,6 +447,7 @@ var nxty = {
             if( !((pRxMsgData[0] == NXTY_STD_MSG_SIZE) || (pRxMsgData[0] == NXTY_MED_MSG_SIZE) || (pRxMsgData[0] == NXTY_BIG_MSG_SIZE) || (pRxMsgData[0] == NXTY_V2_PREFIX)) )
             {
                 uRxBuffIdx = 0;
+                SouthBoundCnxErrorCount++;
                 PrintLog(99,  "Msg: First byte should be 0x0C, 0x84, 0xFF or 0xAE:  1st byte = " + pRxMsgData[0].toString(16) + ", data tossed." );
                 return;
             }
@@ -456,6 +457,7 @@ var nxty = {
         if( (uRxBuffIdx + uLenByte) > u8RxBuff.length ) 
         {
             uRxBuffIdx = 0;
+            SouthBoundCnxErrorCount++;
             PrintLog(99, "Msg: Rx buffer overflow, data tossed.");
             return;
         }
@@ -527,6 +529,7 @@ var nxty = {
         {
             PrintLog(99,  "Msg: Invalid CRC: expected: 0x" + u8RxBuff[uRxMsgLen-1].toString(16) + " calc: 0x" + uCrc.toString(16) );
             msgRxLastCmd      = NXTY_INIT; // Make sure we can send the next message.
+            SouthBoundCnxErrorCount++;
             return;
         }
         
