@@ -2763,7 +2763,6 @@ function GetDeviceSerialNumbersLoop()
     else
     {
 //        StopWaitPopUpMsg();
-        SpinnerStop();  // jdo added to stop spinner
 
 
         var tempIcdBtList  = icdBtList.slice(0);
@@ -2809,6 +2808,7 @@ function GetDeviceSerialNumbersLoop()
         }
         else if( guiNumDevicesFound >= 1 )
         {
+            SpinnerStop();  // jdo added to stop spinner
             deviceFoundUIFlag = true;   // Keep the popup, "Can't find a booster" from showing up after 2 minutes
             
             
