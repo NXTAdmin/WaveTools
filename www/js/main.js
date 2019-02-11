@@ -947,8 +947,8 @@ var app = {
                 
                 myBluetoothIcon +
                 myBluetoothMain +
-                szMyStatusLine +
-                szMyRssiLine;
+                szMyRssiLine +
+                szMyStatusLine;
     
             $('body').html(myHtml); 
             

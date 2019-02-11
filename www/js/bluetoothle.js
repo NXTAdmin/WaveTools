@@ -2049,7 +2049,7 @@ function RestartSouthBoundIf(bClean, bClearBabbleList)
 }
 
 
-/*
+
 
 // GetBluetoothRssi........................................................................
 function GetBluetoothRssi()
@@ -2074,7 +2074,7 @@ function rssiError(msg)
     PrintLog(99, "BT: GetRssi error: " + msg.error + " - " + msg.message);
 }
 
-*/
+
 
 
 
