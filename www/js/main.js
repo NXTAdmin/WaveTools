@@ -318,7 +318,8 @@ var app = {
     //
     onBackKeyDown: function() 
     {
-        
+        UpdateStatusLine( "Back pressed" );
+             
         if( currentView == "main" )
         {
             // Kill the app...
