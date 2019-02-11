@@ -2073,7 +2073,7 @@ function rssiError(msg)
 {
     PrintLog(99, "BT: GetRssi error: " + msg.error + " - " + msg.message);
    
-    if( msg.error == "isNotConnected )
+    if( msg.error == "isNotConnected" )
     {
         UpdateBluetoothIcon( false );
     } 
