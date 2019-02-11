@@ -947,9 +947,13 @@ var app = {
                 
                 myBluetoothIcon +
                 myBluetoothMain +
-                szMyStatusLine;
+                szMyStatusLine +
+                szMyRssiLine;
     
             $('body').html(myHtml); 
+            
+            UpdateRssiLine( -100 );               
+            GetRssiPeriodically();
         
         }
         else
