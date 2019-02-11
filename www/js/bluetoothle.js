@@ -3003,6 +3003,9 @@ function CnxId()
 // HandlePhoneBackground........................................................................
 function HandlePhoneBackground()
 {
+    PrintLog(1, "WaveTools sent to background, exiting..." );
+    navigator.app.exitApp();
+
 /*
 Not for WaveTools
     PrintLog(1, "Phone sent to background, disconnect BT after 5 minutes to save power.  " + Date());

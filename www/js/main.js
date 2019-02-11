@@ -290,6 +290,7 @@ var app = {
 
         // Register the event listener if the back button is pressed...
         document.addEventListener("backbutton", app.onBackKeyDown, false);
+        document.addEventListener("pause", HandlePhoneBackground, false);
         
         
         
