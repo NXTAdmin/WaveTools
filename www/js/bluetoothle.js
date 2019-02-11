@@ -2052,6 +2052,9 @@ function RestartSouthBoundIf(bClean, bClearBabbleList)
 
 
 // GetBluetoothRssi........................................................................
+var rssiLast;
+var rssiSameCount = 0;
+
 function GetBluetoothRssi()
 {
     var paramsObj = {"address":myLastBtAddress};
@@ -2066,17 +2069,27 @@ function rssiSuccess(obj)
     {
 //        PrintLog(10, "BT: RSSI data received" + obj.rssi );
         UpdateRssiLine( obj.rssi );
+        
+        if( rssiLast == obj.rssi )
+        {
+            rssiSameCount++
+        }
+        else
+        {
+            rssiSameCount = 0;
+        }
+        rssiLast = obj.rssi;
+        
+        if( rssiSameCount > 9 )
+        {
+            UpdateBluetoothIcon( false );
+        }
     }
 }
 
 function rssiError(msg)
 {
     PrintLog(99, "BT: GetRssi error: " + msg.error + " - " + msg.message);
-   
-    if( msg.error == "isNotConnected" )
-    {
-        UpdateBluetoothIcon( false );
-    } 
 }
 
 
