@@ -50,7 +50,7 @@ var bSpinner                = false;
 var szNoStatus              = "No status response from unit so ICD version not known...kill app and retry";
 var bCnxToCu                = true;             // Set to true if connected locally to CU after reading local BoardConfig.
 var bCnxToOneBoxNu          = false;            // Set to true if connected to a 1-Box NU, all UART redirects are disabled.
-var bWaveTest               = true;            // Set to false for normal WaveTools or true for Bluetooth test only.                
+var bWaveTest               = false;            // Set to false for normal WaveTools or true for Bluetooth test only.                
 
 var bPhoneInBackground          = false;    // Set to true if phone is in background.
 
