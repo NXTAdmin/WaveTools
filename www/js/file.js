@@ -337,7 +337,7 @@ function onOpenWriteFileSuccessCB(fileEntry)
 
 function onOpenWriteFileErrorCB(e) 
 {
-    PrintLog(99, "Unable to open file: wave.log  Error:" + e.toString() );
+    PrintLog(99, "Unable to open file: wavetools.log  Error:" + e.toString() );
 }
 
 
@@ -358,7 +358,7 @@ function onCreateWriterSuccessCB(fileWriter)
 
 function onCreateWriterErrorCB(e) 
 {
-    PrintLog(99, "Unable to createWriter for file wave.log  Error:" + e.toString() );
+    PrintLog(99, "Unable to createWriter for file wavetools.log  Error:" + e.toString() );
 }
 
 

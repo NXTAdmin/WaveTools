@@ -35,12 +35,12 @@ var MainLoopIntervalHandle  = null;
 var isNetworkConnected      = null;
 var bGotUserInfoRspFromCloud    = false;
 var msgTimer                = null; 
-var szVersion               = "00.02.12";
+var szVersion               = "00.02.13";
 
 //  2/1/19:  00.02.10:   Added thunk capability for Haywards.
 //  2/5/19:  00.02.11:   Added babbling detection.
 //  2/11/19: 00.02.12:   Added RSSI printing and if same RSSI value for 2 seconds then show no BT.
-//
+//  3/13/19: 00.02.13:   Disabled the BT scan blocking...
 
 
 var szSuccess               = "";
@@ -50,7 +50,7 @@ var bSpinner                = false;
 var szNoStatus              = "No status response from unit so ICD version not known...kill app and retry";
 var bCnxToCu                = true;             // Set to true if connected locally to CU after reading local BoardConfig.
 var bCnxToOneBoxNu          = false;            // Set to true if connected to a 1-Box NU, all UART redirects are disabled.
-var bWaveTest               = false;            // Set to false for normal WaveTools or true for Bluetooth test only.                
+var bWaveTest               = true;            // Set to false for normal WaveTools or true for Bluetooth test only.                
 
 var bPhoneInBackground          = false;    // Set to true if phone is in background.
 
