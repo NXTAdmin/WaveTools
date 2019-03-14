@@ -352,7 +352,7 @@ function onCreateWriterSuccessCB(fileWriter)
     bfileOpenLogFileSuccess = true;
     bfileWriteInProgress    = true;
     
-    var devText = "Log file opened: " + Date() + " Print level: " + PrintLogLevel + "\nPhone Model: " + window.device.model + "  OS: " + window.device.platform + " Ver: " + window.device.version;
+    var devText = "Log file opened: " + Date() + " Print level: " + PrintLogLevel + "\nPhone Model: " + window.device.model + "  OS: " + window.device.platform + " Ver: " + window.device.version + " WaveTools Ver=" + szVersion;
     fileWriterObject.write( devText );
 }
 
