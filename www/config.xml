@@ -4,7 +4,7 @@
         xmlns:android="http://schemas.android.com/apk/res/android"
         id          = "WaveTools"
         versionCode = "10"
-        version     = "0.2.13">
+        version     = "0.2.14">
  
     <name>WaveTools</name>
  

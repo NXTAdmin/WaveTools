@@ -35,12 +35,13 @@ var MainLoopIntervalHandle  = null;
 var isNetworkConnected      = null;
 var bGotUserInfoRspFromCloud    = false;
 var msgTimer                = null; 
-var szVersion               = "00.02.13";
+var szVersion               = "00.02.14";
 
 //  2/1/19:  00.02.10:   Added thunk capability for Haywards.
 //  2/5/19:  00.02.11:   Added babbling detection.
 //  2/11/19: 00.02.12:   Added RSSI printing and if same RSSI value for 2 seconds then show no BT.
 //  3/13/19: 00.02.13:   Disabled the BT scan blocking...Removed, did not work.   Left version at 13.
+//  3/14/19: 00.02.14:   Added insomnia.keepAwake() to kee the phone focused.
 
 
 var szSuccess               = "";
@@ -263,6 +264,15 @@ function showAlert(message, title)
 
 
 
+function successAcquirePowerManagement()
+{
+    PrintLog(1, "Power management acquire success.  Autolock disabled so phone does not go to sleep." );
+}
+
+function failAcquirePowerManagement()
+{
+    PrintLog(1, "Power management acquire fail.  Autolock not disabled so phone may go to sleep." );
+}
 
 
 // ..................................................................................
@@ -311,6 +321,9 @@ var app = {
         if( window.isPhone )
         {
             WaitForFileSystemThenStartSouthboundIf();
+            
+            window.plugins.insomnia.keepAwake( successAcquirePowerManagement, failAcquirePowerManagement );            // 
+            
         }
     },   
        
