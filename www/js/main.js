@@ -1074,7 +1074,7 @@ function GetRssiPeriodically()
                 {
                     PrintLog(1, "Telephony: " + JSON.stringify(info)); 
 //                    UpdateStatusLine(JSON.stringify(info));  // follow
-                    UpdateStatusLine(info.phoneType);  // follow
+                    UpdateStatusLine("PhoneType: " + info.phoneType + " Earfcn: " + info.lteEarfcn);  // follow
                 },
                 function(err)               // Fail
                 {
