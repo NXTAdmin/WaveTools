@@ -325,7 +325,7 @@ var app = {
             window.plugins.insomnia.keepAwake( successAcquirePowerManagement, failAcquirePowerManagement );            // 
             
             UpdateStatusLine("jdo test");  // follow
-            var tempInfo = TelephonyManagerInfo();  // follow
+            var tempInfo = TelephonyManagerInfo.getInfo();  // follow
             PrintLog(1, "Telephony: " + JSON.stringify(tempInfo)); 
             
             
