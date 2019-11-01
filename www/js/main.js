@@ -192,7 +192,7 @@ function WaitForFileSystemThenStartSouthboundIf()
     if(bfileOpenLogFileSuccess)
     {
         // Now that the file system is open, start SouthBound Interface...
-        OpenSouthBoundIf(true);
+// follow        OpenSouthBoundIf(true);
     }
     else
     {
@@ -323,20 +323,6 @@ var app = {
             WaitForFileSystemThenStartSouthboundIf();
             
             window.plugins.insomnia.keepAwake( successAcquirePowerManagement, failAcquirePowerManagement );            // 
-            
-            UpdateStatusLine("jdo test");  // follow
-            TelephonyManagerInfo.getInfo(
-                function(info)        // Success
-                {
-                    PrintLog(1, "Telephony: " + JSON.stringify(info)); 
-                },
-                function(err)               // Fail
-                {
-                    PrintLog(99, "Telephony Err: " + err.toString() );
-                }
-             );  // follow
-
-            
             
             
         }
@@ -1035,7 +1021,7 @@ var app = {
                         
         currentView = "main";
         
-        SpinnerStart( "", "Searching for Cel-Fi Bluetooth Devices..." );
+// follow        SpinnerStart( "", "Searching for Cel-Fi Bluetooth Devices..." );
 
         
 //        UpdateRssiLine( -100 );               
@@ -1081,11 +1067,31 @@ var app = {
 
 function GetRssiPeriodically()
 {
+
+            UpdateStatusLine("jdo test");  // follow
+            TelephonyManagerInfo.getInfo(
+                function(info)        // Success
+                {
+                    PrintLog(1, "Telephony: " + JSON.stringify(info)); 
+                    UpdateStatusLine(JSON.stringify(info));  // follow
+                },
+                function(err)               // Fail
+                {
+                    PrintLog(99, "Telephony Err: " + err.toString() );
+                }
+             );  // follow
+
+    setTimeout(GetRssiPeriodically, 1000);
+
+/*
     if(isSouthBoundIfCnx)
     {
         GetBluetoothRssi();
     }
     setTimeout(GetRssiPeriodically, 250);
+*/    
+    
+    
 }
 
 
