@@ -1069,7 +1069,7 @@ function GetRssiPeriodically()
 {
 
             UpdateStatusLine("jdo test");  // follow
-            TelephonyManagerInfo.getInfo(
+            Telephony.getInfo(
                 function(info)        // Success
                 {
                     PrintLog(1, "Telephony: " + JSON.stringify(info)); 
