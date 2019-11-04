@@ -967,7 +967,7 @@ var app = {
     
             $('body').html(myHtml); 
             
-            UpdateRssiLine( -100 );               
+//            UpdateRssiLine( -100 );               
             GetRssiPeriodically();
         
         }
@@ -1074,7 +1074,7 @@ function GetRssiPeriodically()
                 {
                     PrintLog(1, "Telephony: " + JSON.stringify(info)); 
 //                    UpdateStatusLine(JSON.stringify(info));  // follow
-                    UpdateStatusLine("PhoneType: " + info.phoneType + " CellInfo: " + info.cellInfo);  // follow
+                    UpdateStatusLine("CellInfo: " + info.cellInfo);  // follow
                 },
                 function(err)               // Fail
                 {
