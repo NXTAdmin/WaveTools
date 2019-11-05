@@ -1129,7 +1129,7 @@ function stringifyReplaceToHex(key, value)
 
 function onTimerTick() 
 {
-    PrintLog(, "timer tick");
+    PrintLog(1, "timer tick");
     GetRssiPeriodically();
     
 }    
