@@ -1079,6 +1079,7 @@ function GetRssiPeriodically()
                 function(err)               // Fail
                 {
                     PrintLog(99, "Telephony Err: " + err.toString() );
+                    showAlert("Telephony Plugin", JSON.stirngify(err) );
                 }
              );  // follow
 
