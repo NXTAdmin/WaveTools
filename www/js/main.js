@@ -192,7 +192,7 @@ function WaitForFileSystemThenStartSouthboundIf()
     if(bfileOpenLogFileSuccess)
     {
         // Now that the file system is open, start SouthBound Interface...
-// follow        OpenSouthBoundIf(true);
+        OpenSouthBoundIf(true);
     }
     else
     {
@@ -323,11 +323,6 @@ var app = {
             WaitForFileSystemThenStartSouthboundIf();
             
             window.plugins.insomnia.keepAwake( successAcquirePowerManagement, failAcquirePowerManagement );            // 
-            
-            
-            var tempInfo = TelephonyManagerInfo().getInfo();  // follow
-            PrintLog(1, "Telephony: " + JSON.stringify(tempInfo));  // follow 
-            
             
         }
     },   
@@ -975,6 +970,8 @@ var app = {
             GetRssiPeriodically();
             
             UpdateStatusLine("jdo test");  // follow
+            var tempInfo = TelephonyManagerInfo().getInfo();  // follow
+            PrintLog(1, "Telephony: " + JSON.stringify(tempInfo)); 
         
         }
         else
