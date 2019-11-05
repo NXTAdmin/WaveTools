@@ -2950,7 +2950,7 @@ function CnxId()
 function HandlePhoneBackground()
 {
     PrintLog(1, "WaveTools sent to background, exiting..." );
-    navigator.app.exitApp();
+//    navigator.app.exitApp();
 
 /*
 Not for WaveTools
@@ -2967,8 +2967,9 @@ Not for WaveTools
 // HandlePhoneForeground........................................................................
 function HandlePhoneForeground()
 {
-/*
+
     PrintLog(1, "BT: Phone returned from background.  " + Date());
+/*    
     bPhoneInBackground = false;
 
     if( ShutDownBluetoothTimer != null )
