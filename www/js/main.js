@@ -968,10 +968,6 @@ var app = {
             
             UpdateRssiLine( -100 );               
             GetRssiPeriodically();
-            
-            UpdateStatusLine("jdo test");  // follow
-            var tempInfo = TelephonyManagerInfo().getInfo();  // follow
-            PrintLog(1, "Telephony: " + JSON.stringify(tempInfo)); 
         
         }
         else
