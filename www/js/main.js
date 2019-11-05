@@ -968,7 +968,18 @@ var app = {
             $('body').html(myHtml); 
             
 //            UpdateRssiLine( -100 );               
-            GetRssiPeriodically();
+//            GetRssiPeriodically();
+
+
+
+var config = {
+    interval: 30000, // 30 seconds
+    useWakelock: false
+}
+
+// Start
+SimpleTimer.start(onTimerTick, errorStart, config);
+
         
         }
         else
@@ -1083,7 +1094,7 @@ function GetRssiPeriodically()
                 }
              );  // follow
 
-    setTimeout(GetRssiPeriodically, 1000);
+//    setTimeout(GetRssiPeriodically, 1000);
 
 /*
     if(isSouthBoundIfCnx)
@@ -1114,4 +1125,19 @@ function stringifyReplaceToHex(key, value)
     return value;
 }
 
+
+
+function onTimerTick() 
+{
+    PrintLog(, "timer tick");
+    GetRssiPeriodically();
     
+}    
+
+function errorStart(message) {
+    PrintLog(1, 'timer start failed: ' + message);
+}
+
+function onStopped() {
+    PrintLog(1, 'timer is stopped');
+}

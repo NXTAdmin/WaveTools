@@ -74,6 +74,9 @@
  
 <gap:plugin spec="https://github.com/NXTAdmin/cordova-plugin-nextivity" source="git"/> <!-- follow -->
 
+<gap:plugin spec="https://www.github.com/dukhanov/cordova-simple-timer" source="git"/> <!-- follow -->
+
+
  
     <!-- Define app icon for each platform. -->
     
