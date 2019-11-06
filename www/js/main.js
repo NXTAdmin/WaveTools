@@ -1080,7 +1080,7 @@ function GetRssiPeriodically()
 {
 
             UpdateStatusLine("jdo test");  // follow
-            nxty.getCellInfo(
+            Telephony.getCellInfo(
                 function(info)        // Success
                 {
                     PrintLog(1, "Telephony: " + JSON.stringify(info)); 
