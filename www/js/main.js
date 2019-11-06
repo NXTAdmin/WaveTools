@@ -968,7 +968,7 @@ var app = {
             $('body').html(myHtml); 
             
 //            UpdateRssiLine( -100 );               
-//            GetRssiPeriodically();
+            GetRssiPeriodically();  // Run one time at start...
 
 
 
@@ -1080,7 +1080,7 @@ function GetRssiPeriodically()
 {
 
             UpdateStatusLine("jdo test");  // follow
-            Telephony.getCellInfo(
+            nxty.getCellInfo(
                 function(info)        // Success
                 {
                     PrintLog(1, "Telephony: " + JSON.stringify(info)); 
