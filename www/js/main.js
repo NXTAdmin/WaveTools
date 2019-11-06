@@ -968,7 +968,7 @@ var app = {
             $('body').html(myHtml); 
             
 //            UpdateRssiLine( -100 );               
-            GetRssiPeriodically();  // Run one time at start...
+//            GetRssiPeriodically();  // Run one time at start...
 
 
 
