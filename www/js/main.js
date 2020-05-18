@@ -41,7 +41,7 @@ var szVersion               = "00.02.14";
 //  2/5/19:  00.02.11:   Added babbling detection.
 //  2/11/19: 00.02.12:   Added RSSI printing and if same RSSI value for 2 seconds then show no BT.
 //  3/13/19: 00.02.13:   Disabled the BT scan blocking...Removed, did not work.   Left version at 13.
-//  3/14/19: 00.02.14:   Added insomnia.keepAwake() to kee the phone focused.
+//  3/14/19: 00.02.14:   Added insomnia.keepAwake() to keep the phone focused.
 
 
 var szSuccess               = "";
@@ -51,7 +51,7 @@ var bSpinner                = false;
 var szNoStatus              = "No status response from unit so ICD version not known...kill app and retry";
 var bCnxToCu                = true;             // Set to true if connected locally to CU after reading local BoardConfig.
 var bCnxToOneBoxNu          = false;            // Set to true if connected to a 1-Box NU, all UART redirects are disabled.
-var bWaveTest               = true;            // Set to false for normal WaveTools or true for Bluetooth test only.                
+var bWaveTest               = false;            // Set to false for normal WaveTools or true for Bluetooth test only.                
 
 var bPhoneInBackground          = false;    // Set to true if phone is in background.
 
