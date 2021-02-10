@@ -320,7 +320,9 @@ var app = {
         // Only start bluetooth if on a phone...
         if( window.isPhone )
         {
-            WaitForFileSystemThenStartSouthboundIf();
+//            WaitForFileSystemThenStartSouthboundIf();
+            setTimeout(WaitForFileSystemThenStartSouthboundIf, 4000);  
+            
             
             window.plugins.insomnia.keepAwake( successAcquirePowerManagement, failAcquirePowerManagement );            // 
             
