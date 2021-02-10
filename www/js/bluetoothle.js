@@ -2630,7 +2630,8 @@ function GetDeviceSerialNumbersLoop()
                             // Save the index just in case this is the only one found...
                             firstFoundIdx = getSnIdx;
                         }
-                                
+                              
+/*                        
                         if( bPrivacyViewed == true )
                         {
                             var outText = GetLangString("Found") + " " + guiNumDevicesFound + " ";
@@ -2651,7 +2652,7 @@ function GetDeviceSerialNumbersLoop()
 
                             UpdateStatusLine( outText );
                         }
-
+*/
 
                         if( guiDeviceMacAddrList.length > 1 )
                         {
