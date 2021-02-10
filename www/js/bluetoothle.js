@@ -428,11 +428,9 @@ function isConnectedCallback(obj)
                         else 
                         {
                             PrintLog(1, "Location services not available, success callback but not success.");
-                            guiDisableBtScanFlag = true;    // Disable the start of BT scanning...
-//                            util.preLocationMessage();
-                              showAlert("WaveTools", "Location services not available.");
-
-    
+//                            guiDisableBtScanFlag = true;    // Disable the start of BT scanning...
+//                              showAlert("WaveTools", "Location services not available.");
+                              checkPermission();
                         }
                     } 
 
