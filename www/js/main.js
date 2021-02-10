@@ -35,13 +35,15 @@ var MainLoopIntervalHandle  = null;
 var isNetworkConnected      = null;
 var bGotUserInfoRspFromCloud    = false;
 var msgTimer                = null; 
-var szVersion               = "00.02.14";
+var szVersion               = "00.02.15";
 
 //  2/1/19:  00.02.10:   Added thunk capability for Haywards.
 //  2/5/19:  00.02.11:   Added babbling detection.
 //  2/11/19: 00.02.12:   Added RSSI printing and if same RSSI value for 2 seconds then show no BT.
 //  3/13/19: 00.02.13:   Disabled the BT scan blocking...Removed, did not work.   Left version at 13.
 //  3/14/19: 00.02.14:   Added insomnia.keepAwake() to keep the phone focused.
+//  2/10/21: 00.02.15:   Updated to use Android CLI 9 with BT permissions.  Also moved log file to sandbox.
+
 
 
 var szSuccess               = "";

@@ -979,7 +979,7 @@ function UpdateBluetoothIcon(cnx)
      u8ScanResults[0]      = 0;
      bBtIcdVer2   = false;
      
-     UpdateStatusLine( "SN: " );
+//     UpdateStatusLine( "SN: " );
 
  }
 }
@@ -2373,6 +2373,7 @@ function GetDeviceSerialNumbersLoop()
                                         firstFoundIdx = getSnIdx;
                                     }
                                         
+/*                                    
                                     if( bPrivacyViewed == true )
                                     {
                                         var outText = GetLangString("Found") + " " + guiNumDevicesFound + " ";
@@ -2388,6 +2389,8 @@ function GetDeviceSerialNumbersLoop()
                                         document.getElementById("searchMessageBox").innerHTML = outText;
                                         UpdateStatusLine( outText );
                                     }
+*/                                    
+                                    
                                 }
                                 
                                 // Disconnect from BT...
