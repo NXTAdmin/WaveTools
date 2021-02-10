@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <widget xmlns       = "http://www.w3.org/ns/widgets"
-        xmlns:gap   = "http://phonegap.com/ns/1.0"
         xmlns:android="http://schemas.android.com/apk/res/android"
         id          = "com.nextivityinc.WaveTools"
         versionCode = "10"
@@ -17,11 +16,14 @@
     </author>
  
      <platform name="android" />
+
+<!--        xmlns:gap   = "http://phonegap.com/ns/1.0" -->
      
+<!--     
     <gap:config-file platform="android" parent="/manifest">
         <application android:debuggable="true" />
     </gap:config-file>
- 
+ -->
  
  
      <!--
@@ -54,32 +56,14 @@
     <preference name="android-installLocation"    value="auto" />           <!-- android: app install location. 'auto' will choose. 'internalOnly' is device memory. 'preferExternal' is SDCard. -->
 
     <!-- Plugins -->
- 
-    <!-- Core plugins -->
-<!--    <gap:plugin name="cordova-plugin-file"           source="npm" version="3.0.0" />   -->  <!-- jdo: added for file management  -->
-<!--    <gap:plugin name="cordova-plugin-file-transfer"  source="npm" version="1.4.0" /> -->   <!-- jdo: added to transfer files for download from the cloud. -->        
-<!--    <gap:plugin name="cordova-plugin-whitelist"      source="npm" version="1.2.0" /> -->   <!-- jdo: needed for new whitelist network management.  -->
-<!--    <gap:plugin name="cordova-plugin-device"         source="npm" version="1.1.3" /> -->   <!-- jdo: Added to use "window.device.platform" -->
-<!--    <gap:plugin name="cordova-plugin-globalization"  source="npm" version="1.0.4" /> -->
-    <gap:plugin name="cordova-plugin-spinnerdialog" source="npm" />
-    <gap:plugin name="cordova-plugin-dialogs" source="npm" />
-    <gap:plugin name="cordova.plugins.diagnostic"     source="npm" version="3.6.8" />
+    <plugin name="cordova-plugin-spinnerdialog" source="npm" />
+    <plugin name="cordova-plugin-dialogs" source="npm" />
+    <plugin name="cordova.plugins.diagnostic"     source="npm" version="3.6.8" />
 
  
 
 
     <!-- Third party plugins -->
-    <gap:plugin spec="https://github.com/NXTAdmin/cordova-plugin-bluetoothle" source="git"/>     <!-- Based on version 4.4.4.  -->
-    <!-- <gap:plugin name="cordova-plugin-bluetoothle" source="npm" version="3.3.0" /> -->
-    
-<!--    <plugin name="cordova-plugin-insomnia"  source="npm" version="4.1.0" /> -->            <!-- jdo: Added to lock screen from going to sleep during downloads.  -->
-<!--    <plugin name="cordova-plugin-geolocation"  source="npm" version="2.1.0" /> -->         <!-- jdo: Added to find lat and long.   -->
-<!--    <plugin name="cordova-plugin-screen-orientation"  source="npm" version="1.4.2" /> -->   <!--Plugin for maintaining orientation-->
-<!--    <plugin name="cordova-plugin-inappbrowser"  source="npm" version="1.4.0"  /> -->        <!--Plugin for Inappbrowser-->
-<!--    <plugin name="cordova-plugin-network-information"  source="npm" version="1.2.0" />  -->  <!-- jdo: added for network connection information -->
-<!--    <plugin name="cordova-plugin-statusbar" source="npm" version="2.1.3" />  -->           <!-- jdo: IOS 7 and above does not allow full screen.   Use plugin to control -->
- 
-
     <plugin name="cordova-plugin-file"                  source="npm" version="6.0.2" />    <!-- jdo: added for file management, last 4.3.1  -->
     <plugin name="cordova-plugin-whitelist"             source="npm" version="1.3.4" />    <!-- jdo: needed for new whitelist network management. last 1.2.0  -->
     <plugin name="cordova-plugin-device"                source="npm" version="2.0.3" />    <!-- jdo: Added to use "window.device.platform" last 1.1.3 -->
@@ -100,14 +84,6 @@
     
     
     <access origin="*"/>
-    <!--
-        <access origin="http://phonegap.com" />                    - allow any secure requests to http://phonegap.com/
-        <access origin="http://phonegap.com" subdomains="true" />  - same as above, but including subdomains, such as http://build.phonegap.com/
-        <access origin="http://phonegap.com" browserOnly="true" /> - only allows http://phonegap.com to be opened by the child browser.
-    -->
-
-
-
 
 </widget>
  
