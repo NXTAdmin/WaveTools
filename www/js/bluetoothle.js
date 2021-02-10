@@ -479,7 +479,7 @@ function isConnectedCallback(obj)
 // StartScan.....................................................................................
 function StartBluetoothScan()
 {
-    checkPermission(); 
+//    checkPermission(); 
     PrintLog(1, "BT: StartBluetoothScan()...");
     
     // WAVEAPP-544: See if we have a cached MAC address for auto connect.
@@ -548,26 +548,30 @@ function scanMaxRssiTimeout()
     PrintLog(1, "BT: Set bMaxRssiScanning to false.  bMaxRssiScanning="  + bMaxRssiScanning );
 }
 
-function checkPermission() {
-  bluetoothle.hasPermission(function(obj) {
-    if (obj.hasPermission) {
-      //Already has permissions
-      return;
-    }
-
-    //TODO Permission not granted, show permissions explanantion popup
-
-    bluetoothle.requestPermission(function(obj) {
-      if (obj.requestPermission) {
-        //Permission granted
+function checkPermission() 
+{
+    bluetoothle.hasPermission(function(obj) {
+      if (obj.hasPermission) {
+        //Already has permissions
+        PrintLog(1, "BT: checkPermission(): Already has permission.")
         return;
       }
 
-      //TODO Permission denied, show another message?
-      PrintLog(99, "BT: Permission denied.")
+      //TODO Permission not granted, show permissions explanantion popup
+
+      bluetoothle.requestPermission(function(obj) {
+        if (obj.requestPermission) {
+          //Permission granted
+          PrintLog(1, "BT: checkPermission(): Permission granted.")
+          return;
+        }
+
+        //TODO Permission denied, show another message?
+        PrintLog(99, "BT: Permission denied.")
+      });
     });
-  });
 }
+
 
 
 function startScanSuccess(obj)
