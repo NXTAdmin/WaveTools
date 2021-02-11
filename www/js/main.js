@@ -1140,7 +1140,7 @@ function GetPhoneData()
     });
 
 
-phony.getCellInfo(
+    phony.getCellInfo(
         
         function(info)        // Success
         {
@@ -1166,6 +1166,8 @@ phony.getCellInfo(
                 PrintLog(1, "Telephony: " + JSON.stringify(info));
             }
             
+            var bReg = false;
+            
             for( var i = 0; i < cells.length; i++ )
             {
                 PrintLog(1, "Cell: " + cells[i] );
@@ -1184,6 +1186,7 @@ phony.getCellInfo(
                     
                     if( cellReg[1] == "true" )
                     {
+                        bReg = true;
                         var uBw = parseInt(cellBw[1]);  // Convert the string to a number.
                         
                         if( uBw == 0x7FFFFFFF )
@@ -1214,6 +1217,12 @@ phony.getCellInfo(
                         
                     }
                 }
+            }
+            
+            if( bReg == false )
+            {
+                outText += "No registered cells found.";
+                UpdateRssiLine(outText);
             }
             
         },
