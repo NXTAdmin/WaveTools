@@ -35,7 +35,7 @@ var MainLoopIntervalHandle  = null;
 var isNetworkConnected      = null;
 var bGotUserInfoRspFromCloud    = false;
 var msgTimer                = null; 
-var szVersion               = "00.02.15";
+var szVersion               = "00.02.16";
 
 var bWaveTest               = false;            // Set to false for normal WaveTools or true for Bluetooth test only.                
 var bPhoneTech              = true;             // Set to true to display phone tech data.                
@@ -46,6 +46,8 @@ var bPhoneTech              = true;             // Set to true to display phone 
 //  3/13/19: 00.02.13:   Disabled the BT scan blocking...Removed, did not work.   Left version at 13.
 //  3/14/19: 00.02.14:   Added insomnia.keepAwake() to keep the phone focused.
 //  2/10/21: 00.02.15:   Updated to use Android CLI 9 with BT permissions.  Also moved log file to sandbox.
+//  2/10/21: 00.02.16:   Add 5G to plugin and displayed phone data on screen from plugin.  bPhoneTech must be set to true to display.
+
 
 
 
