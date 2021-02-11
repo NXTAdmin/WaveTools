@@ -1182,8 +1182,16 @@ phony.getCellInfo(
                     
                     if( cellReg[1] == "true" )
                     {
-                        var uBw = parseInt(cellBw[1])/1000;  // Convert the string to a number.
-                        outText += cellTech[1] + ":" + cellFnc[1] + " BW:" + uBw;
+                        var uBw = parseInt(cellBw[1]);  // Convert the string to a number.
+                        
+                        if( uBw == 0x7FFFFFFF )
+                        {
+                            outText += cellTech[1] + ":" + cellFnc[1] + " BW:Unavailable";
+                        }
+                        else
+                        {
+                            outText += cellTech[1] + ":" + cellFnc[1] + " BW:" + uBw/1000;
+                        }
                     
 /*                    
                         if( cellTech[1] == "WCDMA" )
