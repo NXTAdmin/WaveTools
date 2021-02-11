@@ -1178,12 +1178,12 @@ phony.getCellInfo(
                     var cellDbm  = cellData[3].split(":");
                     var cellBw   = cellData[4].split(":");
                     
-                    var outText  = "";
+                    var outText  = "Phone: ";
                     
-//                    if( cellReg[1] == "true" )
+                    if( cellReg[1] == "true" )
                     {
                         var uBw = parseInt(cellBw[1])/1000;  // Convert the string to a number.
-                        outText = cellTech[1] + ":" + cellFnc[1] + " BW:" + uBw;
+                        outText += cellTech[1] + ":" + cellFnc[1] + " BW:" + uBw;
                     
 /*                    
                         if( cellTech[1] == "WCDMA" )
