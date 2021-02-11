@@ -1173,13 +1173,15 @@ phony.getCellInfo(
                 
                 if( cellTech[0] == "tech"  )
                 {
-                    var cellFnc  = cellData[1].split(":");
-                    var cellReg  = cellData[2].split(":");
+                    var cellFnc  = cellData[1].split(":");    // cellData[0]  cellData[1]  cellData[2]  cellData[3]  cellData[4]
+                    var cellReg  = cellData[2].split(":");    // tech:LTE     fcn:66536    isReg:true   dbm:-105     bw:20000
+                    var cellDbm  = cellData[3].split(":");
+                    var cellBw   = cellData[4].split(":");
+                    
                     var outText  = "";
                     
 //                    if( cellReg[1] == "true" )
                     {
-                        var cellBw   = cellData[3].split(":");
                         var uBw = parseInt(cellBw[1])/1000;  // Convert the string to a number.
                         outText = cellTech[1] + ":" + cellFnc[1] + " BW:" + uBw;
                     
