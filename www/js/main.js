@@ -49,6 +49,7 @@ var bPhoneTech              = true;             // Set to true to display phone 
 //  2/10/21: 00.02.15:   Updated to use Android CLI 9 with BT permissions.  Also moved log file to sandbox.
 //  2/10/21: 00.02.16:   Add 5G to plugin and displayed phone data on screen from plugin.  bPhoneTech must be set to true to display.
 //  2/10/21: 00.02.17:   Add button to connect. Build locally: C:\github\Ionic\WaveTools>cordova build Android
+//  3/11/21: 00.02.18:   Add message before Quick Lock button. Build locally: C:\github\Ionic\WaveTools>cordova build Android
 
 
 
