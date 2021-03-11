@@ -553,6 +553,7 @@ function checkPermission()
     bluetoothle.hasPermission(function(obj) {
       if (obj.hasPermission) {
         //Already has permissions
+        bHasBtPermission = true;
         PrintLog(1, "BT: checkPermission(): Already has permission.")
         return;
       }
@@ -562,6 +563,7 @@ function checkPermission()
       bluetoothle.requestPermission(function(obj) {
         if (obj.requestPermission) {
           //Permission granted
+          bHasBtPermission = true;
           PrintLog(1, "BT: checkPermission(): Permission granted.")
           return;
         }

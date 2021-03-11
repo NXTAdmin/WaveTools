@@ -30,12 +30,13 @@ var bDisplayBackgroundRing  = false;
 var bSentCloud              = false;
 var bUniiUp                 = true;
 var bNaking                 = false;
+var bHasBtPermission        = false;
 var uMainLoopCounter        = 0;
 var MainLoopIntervalHandle  = null; 
 var isNetworkConnected      = null;
 var bGotUserInfoRspFromCloud    = false;
 var msgTimer                = null; 
-var szVersion               = "00.02.16";
+var szVersion               = "00.02.18";
 
 var bWaveTest               = false;            // Set to false for normal WaveTools or true for Bluetooth test only.                
 var bPhoneTech              = true;             // Set to true to display phone tech data.                
@@ -47,6 +48,8 @@ var bPhoneTech              = true;             // Set to true to display phone 
 //  3/14/19: 00.02.14:   Added insomnia.keepAwake() to keep the phone focused.
 //  2/10/21: 00.02.15:   Updated to use Android CLI 9 with BT permissions.  Also moved log file to sandbox.
 //  2/10/21: 00.02.16:   Add 5G to plugin and displayed phone data on screen from plugin.  bPhoneTech must be set to true to display.
+//  2/10/21: 00.02.17:   Add button to connect. Build locally: C:\github\Ionic\WaveTools>cordova build Android
+
 
 
 
@@ -206,7 +209,8 @@ function WaitForFileSystemThenStartSouthboundIf()
     if(bfileOpenLogFileSuccess)
     {
         // Now that the file system is open, start SouthBound Interface...
-        OpenSouthBoundIf(true);
+//        OpenSouthBoundIf(true);
+        checkPermission();  // Must have BT to get phone tech data...
     }
     else
     {
@@ -377,6 +381,12 @@ var app = {
     // Global Flags: 0xF0000038 = 0xF1AC0100
     handleRegKey: function()
     {
+        if( isSouthBoundIfCnx == false )
+        {
+            showAlert( "Device not connected.", "WaveTools");
+            return;
+        }
+    
         if( retryObject == null )
         {    
             PrintLog(1, "");
@@ -479,6 +489,12 @@ var app = {
     // Global Flags: 0xF0000038 = 0xF1AC0001    
     handleUnRegKey: function()
     {
+        if( isSouthBoundIfCnx == false )
+        {
+            showAlert( "Device not connected.", "WaveTools");
+            return;
+        }
+    
         if( retryObject == null )
         {   
             PrintLog(1, "");
@@ -575,12 +591,26 @@ var app = {
     },
 
 
-
+    handleQLockKeyMsg: function()
+    {
+        navigator.notification.confirm(
+            "The Quick Location Lock is an internal test feature that quickly runs through the location lock grace period and is not available on devices with locked flash.",    // message
+            app.handleQLockKey,  // callback to invoke with index of button pressed
+            "Device Flash Unlocked?",       // title
+            ['Ok'] );                       // buttonLabels
+    
+    },
 
     // Handle the Quick Lock key
     // FUNCTION reg:  0xF0000000 = 0x00010000
     handleQLockKey: function()
     {
+        if( isSouthBoundIfCnx == false )
+        {
+            showAlert( "Device not connected.", "WaveTools");
+            return;
+        }
+
         if( retryObject == null )
         {   
             PrintLog(1, "");
@@ -682,6 +712,12 @@ var app = {
     // CellIdTime: 0xF000002C = 0xDABADABA
     handleCLockKey: function()
     {
+        if( isSouthBoundIfCnx == false )
+        {
+            showAlert( "Device not connected.", "WaveTools");
+            return;
+        }
+
         if( retryObject == null )
         {   
             PrintLog(1, "");
@@ -784,6 +820,12 @@ var app = {
     // CacFrameTimer: 0xF0000090 = 0x00000001
     handleBypassCacKey: function()
     {
+        if( isSouthBoundIfCnx == false )
+        {
+            showAlert( "Device not connected.", "WaveTools");
+            return;
+        }
+
         if( retryObject == null )
         {   
             PrintLog(1, "");
@@ -879,6 +921,27 @@ var app = {
         }
     },
 
+    
+    
+    // Handle the Connect Device key
+    handleConnectKey: function()
+    {
+        if( isSouthBoundIfCnx )
+        {
+            showAlert( "Device already connected.", "WaveTools");
+        }
+        else if (isSouthBoundIfStarted)
+        {
+            showAlert("BT already started.", "WaveTools");
+        }
+        else
+        {
+            SpinnerStart( "", "Searching for Cel-Fi Bluetooth Devices..." );
+            OpenSouthBoundIf(true);
+        }
+    },
+    
+    
     
     // Handle the Register key response
     handleRespnose: function()
@@ -1006,9 +1069,10 @@ var app = {
                    
                   "<button id='reg_button_id'         type='button' class='mybutton' onclick='app.handleRegKey()'>       <img src='img/button_Register.png' />          </button>" +
                 "<button id='unreg_button_id'       type='button' class='mybutton' onclick='app.handleUnRegKey()'>     <img src='img/button_UnRegister.png' />        </button>" +
-                "<button id='quick_lock_button_id'  type='button' class='mybutton' onclick='app.handleQLockKey()'>     <img src='img/button_QuickLocationLock.png' /> </button>" +
+                "<button id='quick_lock_button_id'  type='button' class='mybutton' onclick='app.handleQLockKeyMsg()'>     <img src='img/button_QuickLocationLock.png' /> </button>" +
                 "<button id='clear_lock_button_id'  type='button' class='mybutton' onclick='app.handleCLockKey()'>     <img src='img/button_ClearLocationLock.png' /> </button>" +
                 "<button id='bypass_cac_button_id'  type='button' class='mybutton' onclick='app.handleBypassCacKey()'> <img src='img/button_BypassCac.png' />         </button>" +
+                "<button id='connect_button_id'     type='button' class='mybutton' onclick='app.handleConnectKey()'>   <img src='img/button_Connect.png' />           </button>" +
                 
                 
                 szMyRssiLine +
@@ -1033,6 +1097,10 @@ var app = {
     
             document.getElementById("bypass_cac_button_id").addEventListener('touchstart', HandleButtonDown );
             document.getElementById("bypass_cac_button_id").addEventListener('touchend',   HandleButtonUp );
+
+            document.getElementById("connect_button_id").addEventListener('touchstart', HandleButtonDown );
+            document.getElementById("connect_button_id").addEventListener('touchend',   HandleButtonUp );
+
             UpdateStatusLine( "Wavetools ver: " + szVersion );
         
         }
@@ -1048,7 +1116,7 @@ var app = {
                         
         currentView = "main";
         
-        SpinnerStart( "", "Searching for Cel-Fi Bluetooth Devices..." );
+//        SpinnerStart( "", "Searching for Cel-Fi Bluetooth Devices..." );
 
         
 //        UpdateRssiLine( -100 );               
@@ -1124,21 +1192,10 @@ function stringifyReplaceToHex(key, value)
     
 function GetPhoneData()
 {
-    var bHasBtPermission = false;
-    bluetoothle.hasPermission(function(obj) 
+    if( bHasBtPermission == false )
     {
-        if (obj.hasPermission) 
-        {
-            //Already has permissions
-            bHasBtPermission = true;
-        }
-      
-        if(bHasBtPermission == false )
-        {
-            return;
-        }
-    });
-
+        return;
+    }
 
     phony.getCellInfo(
         
