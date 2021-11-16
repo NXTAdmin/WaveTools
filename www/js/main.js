@@ -1294,7 +1294,7 @@ var app = {
                 "<button id='clear_lock_button_id'  type='button' class='mybutton' onclick='app.handleCLockKey()'>     <img src='img/button_ClearLocationLock.png' /> </button>" +
                 "<button id='bypass_cac_button_id'  type='button' class='mybutton' onclick='app.handleBypassCacKey()'> <img src='img/button_BypassCac.png' />         </button>" +
                 "<button id='lock_set_button_id'    type='button' class='mybutton' onclick='app.handleLockSettingsKey()'> <img src='img/button_LockSettings.png' />         </button>" +
-                "<button id='unlock_set_button_id'  type='button' class='mybutton' onclick='app.handleUnLockSettingsKey()'> <img src='img/button_UnlockSettings.png' />         </button>" +
+                "<button id='unlock_set_button_id'  type='button' class='mybutton' onclick='app.handleUnLockSettingsKey()'> <img src='img/button_UnLockSettings.png' />         </button>" +
                 "<button id='connect_button_id'     type='button' class='mybutton' onclick='app.handleConnectKey()'>   <img src='img/button_Connect.png' />           </button>" +
                 
                 
