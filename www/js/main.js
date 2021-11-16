@@ -36,20 +36,21 @@ var MainLoopIntervalHandle  = null;
 var isNetworkConnected      = null;
 var bGotUserInfoRspFromCloud    = false;
 var msgTimer                = null; 
-var szVersion               = "00.02.18";
+var szVersion               = "00.02.19";
 
 var bWaveTest               = false;            // Set to false for normal WaveTools or true for Bluetooth test only.                
 var bPhoneTech              = true;             // Set to true to display phone tech data.                
 
-//  2/1/19:  00.02.10:   Added thunk capability for Haywards.
-//  2/5/19:  00.02.11:   Added babbling detection.
-//  2/11/19: 00.02.12:   Added RSSI printing and if same RSSI value for 2 seconds then show no BT.
-//  3/13/19: 00.02.13:   Disabled the BT scan blocking...Removed, did not work.   Left version at 13.
-//  3/14/19: 00.02.14:   Added insomnia.keepAwake() to keep the phone focused.
-//  2/10/21: 00.02.15:   Updated to use Android CLI 9 with BT permissions.  Also moved log file to sandbox.
-//  2/10/21: 00.02.16:   Add 5G to plugin and displayed phone data on screen from plugin.  bPhoneTech must be set to true to display.
-//  2/10/21: 00.02.17:   Add button to connect. Build locally: C:\github\Ionic\WaveTools>cordova build Android
-//  3/11/21: 00.02.18:   Add message before Quick Lock button. Build locally: C:\github\Ionic\WaveTools>cordova build Android
+//  2/1/19:   00.02.10:   Added thunk capability for Haywards.
+//  2/5/19:   00.02.11:   Added babbling detection.
+//  2/11/19:  00.02.12:   Added RSSI printing and if same RSSI value for 2 seconds then show no BT.
+//  3/13/19:  00.02.13:   Disabled the BT scan blocking...Removed, did not work.   Left version at 13.
+//  3/14/19:  00.02.14:   Added insomnia.keepAwake() to keep the phone focused.
+//  2/10/21:  00.02.15:   Updated to use Android CLI 9 with BT permissions.  Also moved log file to sandbox.
+//  2/10/21:  00.02.16:   Add 5G to plugin and displayed phone data on screen from plugin.  bPhoneTech must be set to true to display.
+//  2/10/21:  00.02.17:   Add button to connect. Build locally: C:\github\Ionic\WaveTools>cordova build Android
+//  3/11/21:  00.02.18:   Add message before Quick Lock button. Build locally: C:\github\Ionic\WaveTools>cordova build Android
+//  11/16/21: 00.02.19:   Add Lock and Unlock Settings Page button. Build locally: C:\github\Ionic\WaveTools>cordova build Android
 
 
 
@@ -922,6 +923,225 @@ var app = {
         }
     },
 
+
+
+    // Handle the Lock Settings Page key
+    // Global Flags: 0xF0000038 = 0xF1AC8000   Clear the lock bit 0x80
+    handleLockSettingsKey: function()
+    {
+        if( isSouthBoundIfCnx == false )
+        {
+            showAlert( "Device not connected.", "WaveTools");
+            return;
+        }
+    
+        if( retryObject == null )
+        {    
+            PrintLog(1, "");
+            PrintLog(1, "Lock Settings key pressed--------------------------------------");
+         }
+         else
+         {
+            PrintLog(1, "Lock Settings key retry--------------------------------------");
+         }
+         
+         if( nxtyRxStatusIcd == null )
+        {
+            PrintLog(1, szNoStatus );
+            showAlert(szNoStatus, "No Status Response");
+            return;
+         }
+         
+         
+         if( isSouthBoundIfCnx )
+         {
+            if( nxtyRxStatusIcd <= 0x07 )
+            {
+                var u8Buff  = new Uint8Array(20);
+                u8Buff[0] = 0x81;                               // Redirect to NU on entry and exit...   
+                u8Buff[1] = (NXTY_PCCTRL_GLOBALFLAGS >> 24);    // Note that javascript converts var to INT32 for shift operations.
+                u8Buff[2] = (NXTY_PCCTRL_GLOBALFLAGS >> 16);
+                u8Buff[3] = (NXTY_PCCTRL_GLOBALFLAGS >> 8);
+                u8Buff[4] = NXTY_PCCTRL_GLOBALFLAGS;
+                u8Buff[5] = 0xF1;                    
+                u8Buff[6] = 0xAC;
+                u8Buff[7] = 0x80;
+                u8Buff[8] = 0x00;
+                
+                nxty.SendNxtyMsg(NXTY_CONTROL_WRITE_REQ, u8Buff, 9);
+            }
+            else
+            {
+                var i             = 0;
+                var u8TempTxBuff  = new Uint8Array(50);
+            
+                PrintLog(1,  "Super Msg Send: Register" );
+            
+                // Redirect the UART........................................
+                u8TempTxBuff[i++] = NXTY_WRITE_ADDRESS_REQ;
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_UART_REDIRECT >> 24);  
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_UART_REDIRECT >> 16);
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_UART_REDIRECT >> 8);
+                u8TempTxBuff[i++] = NXTY_PCCTRL_UART_REDIRECT;
+                u8TempTxBuff[i++] = 0x00;                               
+                u8TempTxBuff[i++] = 0x00;
+                u8TempTxBuff[i++] = 0x00;
+                u8TempTxBuff[i++] = 0x01;                                   // Set to 1 to redirect to remote unit
+            
+            
+                // Lock Settings Page.................................................                
+                u8TempTxBuff[i++] = NXTY_WRITE_ADDRESS_REQ;
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_GLOBALFLAGS >> 24);  
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_GLOBALFLAGS >> 16);
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_GLOBALFLAGS >> 8);
+                u8TempTxBuff[i++] = NXTY_PCCTRL_GLOBALFLAGS;
+                u8TempTxBuff[i++] = 0xF1;              
+                u8TempTxBuff[i++] = 0xAC;
+                u8TempTxBuff[i++] = 0x80;
+                u8TempTxBuff[i++] = 0x00;
+                
+                // Redirect the UART Local........................................
+                u8TempTxBuff[i++] = NXTY_WRITE_ADDRESS_REQ;
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_UART_REDIRECT >> 24);  
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_UART_REDIRECT >> 16);
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_UART_REDIRECT >> 8);
+                u8TempTxBuff[i++] = NXTY_PCCTRL_UART_REDIRECT;
+                u8TempTxBuff[i++] = 0x00;                               
+                u8TempTxBuff[i++] = 0x00;
+                u8TempTxBuff[i++] = 0x00;
+                u8TempTxBuff[i++] = 0x00;                                   // Set to 0 to go back local
+            
+                
+                nxtyCurrentReq = NXTY_SUPER_MSG_SET_NU_PARAM;
+                nxty.SendNxtyMsg(NXTY_SUPER_MSG_REQ, u8TempTxBuff, i);
+            }
+            
+            // Start the spinner..
+            bUniiUp = true;
+            SpinnerStart( "", "Lock Settings Page command sent to NU." );
+            szSuccess = "Unit should now be locked...";
+             msgTimer = setTimeout(app.handleRespnose, 6000);
+            retryObject = app.handleLockSettingsKey;
+             
+         
+         }
+         else
+         {
+            SpinnerStop();
+            showAlert("Lock Settings not allowed...", "Bluetooth not connected.");
+         }
+    },
+
+
+
+    // Handle the UnLock Settings Page key
+    // Global Flags: 0xF0000038 = 0xF1AC0080   Set the lock bit 0x80
+    handleUnLockSettingsKey: function()
+    {
+        if( isSouthBoundIfCnx == false )
+        {
+            showAlert( "Device not connected.", "WaveTools");
+            return;
+        }
+    
+        if( retryObject == null )
+        {    
+            PrintLog(1, "");
+            PrintLog(1, "UnLock Settings key pressed--------------------------------------");
+         }
+         else
+         {
+            PrintLog(1, "UnLock Settings key retry--------------------------------------");
+         }
+         
+         if( nxtyRxStatusIcd == null )
+        {
+            PrintLog(1, szNoStatus );
+            showAlert(szNoStatus, "No Status Response");
+            return;
+         }
+         
+         
+         if( isSouthBoundIfCnx )
+         {
+            if( nxtyRxStatusIcd <= 0x07 )
+            {
+                var u8Buff  = new Uint8Array(20);
+                u8Buff[0] = 0x81;                               // Redirect to NU on entry and exit...   
+                u8Buff[1] = (NXTY_PCCTRL_GLOBALFLAGS >> 24);    // Note that javascript converts var to INT32 for shift operations.
+                u8Buff[2] = (NXTY_PCCTRL_GLOBALFLAGS >> 16);
+                u8Buff[3] = (NXTY_PCCTRL_GLOBALFLAGS >> 8);
+                u8Buff[4] = NXTY_PCCTRL_GLOBALFLAGS;
+                u8Buff[5] = 0xF1;                    
+                u8Buff[6] = 0xAC;
+                u8Buff[7] = 0x00;
+                u8Buff[8] = 0x80;
+                
+                nxty.SendNxtyMsg(NXTY_CONTROL_WRITE_REQ, u8Buff, 9);
+            }
+            else
+            {
+                var i             = 0;
+                var u8TempTxBuff  = new Uint8Array(50);
+            
+                PrintLog(1,  "Super Msg Send: Register" );
+            
+                // Redirect the UART........................................
+                u8TempTxBuff[i++] = NXTY_WRITE_ADDRESS_REQ;
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_UART_REDIRECT >> 24);  
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_UART_REDIRECT >> 16);
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_UART_REDIRECT >> 8);
+                u8TempTxBuff[i++] = NXTY_PCCTRL_UART_REDIRECT;
+                u8TempTxBuff[i++] = 0x00;                               
+                u8TempTxBuff[i++] = 0x00;
+                u8TempTxBuff[i++] = 0x00;
+                u8TempTxBuff[i++] = 0x01;                                   // Set to 1 to redirect to remote unit
+            
+            
+                // Unlock.................................................                
+                u8TempTxBuff[i++] = NXTY_WRITE_ADDRESS_REQ;
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_GLOBALFLAGS >> 24);  
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_GLOBALFLAGS >> 16);
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_GLOBALFLAGS >> 8);
+                u8TempTxBuff[i++] = NXTY_PCCTRL_GLOBALFLAGS;
+                u8TempTxBuff[i++] = 0xF1;              
+                u8TempTxBuff[i++] = 0xAC;
+                u8TempTxBuff[i++] = 0x00;
+                u8TempTxBuff[i++] = 0x80;
+                
+                // Redirect the UART Local........................................
+                u8TempTxBuff[i++] = NXTY_WRITE_ADDRESS_REQ;
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_UART_REDIRECT >> 24);  
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_UART_REDIRECT >> 16);
+                u8TempTxBuff[i++] = (NXTY_PCCTRL_UART_REDIRECT >> 8);
+                u8TempTxBuff[i++] = NXTY_PCCTRL_UART_REDIRECT;
+                u8TempTxBuff[i++] = 0x00;                               
+                u8TempTxBuff[i++] = 0x00;
+                u8TempTxBuff[i++] = 0x00;
+                u8TempTxBuff[i++] = 0x00;                                   // Set to 0 to go back local
+            
+                
+                nxtyCurrentReq = NXTY_SUPER_MSG_SET_NU_PARAM;
+                nxty.SendNxtyMsg(NXTY_SUPER_MSG_REQ, u8TempTxBuff, i);
+            }
+            
+            // Start the spinner..
+            bUniiUp = true;
+            SpinnerStart( "", "UnLock Settings Page command sent to NU." );
+            szSuccess = "Unit should now be Unlocked...";
+             msgTimer = setTimeout(app.handleRespnose, 6000);
+            retryObject = app.handleUnLockSettingsKey;
+             
+         
+         }
+         else
+         {
+            SpinnerStop();
+            showAlert("UnLock Settings not allowed...", "Bluetooth not connected.");
+         }
+    },
+
+
     
     
     // Handle the Connect Device key
@@ -1073,6 +1293,8 @@ var app = {
                 "<button id='quick_lock_button_id'  type='button' class='mybutton' onclick='app.handleQLockKeyMsg()'>     <img src='img/button_QuickLocationLock.png' /> </button>" +
                 "<button id='clear_lock_button_id'  type='button' class='mybutton' onclick='app.handleCLockKey()'>     <img src='img/button_ClearLocationLock.png' /> </button>" +
                 "<button id='bypass_cac_button_id'  type='button' class='mybutton' onclick='app.handleBypassCacKey()'> <img src='img/button_BypassCac.png' />         </button>" +
+                "<button id='lock_set_button_id'    type='button' class='mybutton' onclick='app.handleLockSettingsKey()'> <img src='img/button_LockSettings.png' />         </button>" +
+                "<button id='unlock_set_button_id'  type='button' class='mybutton' onclick='app.handleUnLockSettingsKey()'> <img src='img/button_UnlockSettings.png' />         </button>" +
                 "<button id='connect_button_id'     type='button' class='mybutton' onclick='app.handleConnectKey()'>   <img src='img/button_Connect.png' />           </button>" +
                 
                 
