@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns       = "http://www.w3.org/ns/widgets"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        id          = "com.nextivityinc.WaveTools"
+        versionCode = "10"
+        version     = "0.2.18">
+ 
+    <name>WaveTools</name>
+ 
+    <description>
+        Nextivity Phone App Wave Tools
+    </description>
+ 
+    <author email="jowen@nextivityinc.com">
+        John Owen
+    </author>
+ 
+     <platform name="android" />
+
+ 
+     <!--
+        If you do not want any permissions to be added to your app, add the
+        following tag to your config.xml; you will still have the INTERNET
+        permission on your app, which PhoneGap requires.
+    -->
+    <preference name="permissions"                value="none"/>
+
+    <preference name="phonegap-version" value="cli-9.0.0" /> 
+    
+    
+    <preference name="orientation"                value="portrait" />       <!-- all: default means both landscape and portrait are enabled -->
+    <preference name="target-device"              value="universal" />      <!-- all: possible values handset, tablet, or universal -->
+    <preference name="fullscreen"                 value="true" />           <!-- all: hides the status bar at the top of the screen -->
+    <preference name="webviewbounce"              value="true" />           <!-- ios: control whether the screen 'bounces' when scrolled beyond the top -->
+    <preference name="prerendered-icon"           value="true" />           <!-- ios: if icon is prerendered, iOS will not apply it's gloss to the app's icon on the user's home screen -->
+    <preference name="stay-in-webview"            value="false" />          <!-- ios: external links should open in the default browser, 'true' would use the webview the app lives in -->
+    <preference name="ios-statusbarstyle"         value="black-opaque" />   <!-- ios: black-translucent will appear black because the PhoneGap webview doesn't go beneath the status bar -->
+    <preference name="detect-data-types"          value="true" />           <!-- ios: controls whether data types (such as phone no. and dates) are automatically turned into links by the system -->
+    <preference name="exit-on-suspend"            value="false" />          <!-- ios: if set to true, app will terminate when home button is pressed -->
+    <preference name="show-splash-screen-spinner" value="true" />           <!-- ios: if set to false, the spinner won't appear on the splash screen during app loading -->
+    <preference name="auto-hide-splash-screen"    value="true" />           <!-- ios: if set to false, the splash screen must be hidden using a JavaScript API -->
+    <preference name="disable-cursor"             value="false" />          <!-- blackberry: prevents a mouse-icon/cursor from being displayed on the app -->
+    <preference name="android-minSdkVersion"      value="22" />             <!-- android 5.1: MIN SDK version supported on the target device. MAX version is blank by default. -->
+    <preference name="android-targetSdkVersion"   value="29" />   
+    <preference name="android-installLocation"    value="auto" />           <!-- android: app install location. 'auto' will choose. 'internalOnly' is device memory. 'preferExternal' is SDCard. -->
+
+    <!-- Plugins -->
+    <plugin name="cordova-plugin-spinnerdialog"         source="npm" />
+    <plugin name="cordova-plugin-dialogs"               source="npm" />
+    <plugin name="cordova.plugins.diagnostic"           source="npm" version="5.0.2" />  <!-- 5.0.2 is last version to use Android lib not Android X -->
+
+    <!-- Third party plugins -->
+    <plugin name="cordova-plugin-file"                  source="npm" version="6.0.2" />    <!-- jdo: added for file management, last 4.3.1  -->
+    <plugin name="cordova-plugin-whitelist"             source="npm" version="1.3.4" />    <!-- jdo: needed for new whitelist network management. last 1.2.0  -->
+    <plugin name="cordova-plugin-device"                source="npm" version="2.0.3" />    <!-- jdo: Added to use "window.device.platform" last 1.1.3 -->
+    <plugin name="cordova-plugin-globalization"          source="npm" version="1.11.0" />    <!-- jdo: last 1.0.4.  plugin says no longer necessary, need to check. -->
+    <plugin name="cordova-plugin-insomnia"              source="npm" version="4.3.0" />     <!-- jdo: Added to lock screen from going to sleep during downloads. last 4.1.0 -->
+    <plugin name="cordova-plugin-geolocation"           source="npm" version="4.0.2" />     <!-- jdo: Added to find lat and long. last 2.1.0  -->
+    <plugin name="cordova-plugin-screen-orientation"    source="npm" version="3.0.2" />     <!--Plugin for maintaining orientation. last 1.4.2-->
+    <plugin name="cordova-plugin-inappbrowser"          source="npm" version="4.1.0" />     <!--Plugin for Inappbrowser. last 1.4.0-->
+    <plugin name="cordova-plugin-network-information"   source="npm" version="2.0.2" />     <!-- jdo: added for network connection information. last 1.2.0 -->
+    <plugin name="cordova-plugin-statusbar"             source="npm" version="2.4.3" />     <!-- jdo: IOS 7 and above does not allow full screen.   last 2.1.3 -->
+ 
+    <plugin name="cordova-plugin-bluetoothle"           source="git" spec="https://github.com/NXTAdmin/cordova-plugin-bluetoothle" />
+    <plugin name="cordova-plugin-nextivity"             source="git" spec="https://github.com/NXTAdmin/cordova-plugin-nextivity" /> <!-- follow --> 
+ 
+   
+    <!-- icon.png is the default icon that is displayed to start the app. -->
+    <icon src="www/icon.png" />
+    <engine name="android" spec="9.0.0"/>     <!-- must use social sharing pluging 5.6.8, not 6.0.0 which uses AndroidX -->
+
+    <access origin="*"/>
+
+</widget>
+ 
+ 
